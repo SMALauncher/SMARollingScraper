@@ -1,2 +1,6 @@
 # Project exclude paths
 /.gradle/
+/.idea/
+
+# Token file, very private!
+.token
