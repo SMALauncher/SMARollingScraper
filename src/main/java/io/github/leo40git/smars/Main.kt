@@ -44,7 +44,8 @@ fun getEnvString(name: String, desc: String): String {
 val token = getEnvString("TOKEN", "your Discord bot's token")
 val appId = getEnvString("GH_APP_ID", "your GitHub App's ID")
 val keyPath = getEnvString("GH_APP_KEY", "the path to your GitHub App's PEM file")
-val repo = getEnvString("GH_REPO", "the GitHub repository to upload releases to")
+val repoOrg = getEnvString("GH_REPO_ORG", "the organization owning the GitHub repository to upload releases to")
+val repoName = getEnvString("GH_REPO_NAME", "the name of the GitHub repository to upload releases to")
 
 val client = HttpClient(CIO) {
     install(JsonFeature) {
@@ -52,7 +53,7 @@ val client = HttpClient(CIO) {
     }
 }
 val generator = ReleaseGenerator(client)
-val uploader = ReleaseUploader(appId, keyPath, repo)
+val uploader = ReleaseUploader(appId, keyPath, repoOrg, repoName)
 
 var bot: ExtensibleBot? = null
 
@@ -144,7 +145,8 @@ class ScraperExtension : Extension() {
                 message.reply(true) {
                     content = "**Shutting down...**"
                 }
-                bot.getKoin().get<Kord>().logout()
+                bot.getKoin().get<Kord>().shutdown()
+                exitProcess(0)
             }
         }
     }
