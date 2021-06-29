@@ -57,9 +57,11 @@ val uploader = ReleaseUploader(appId, keyPath, repoOrg, repoName)
 
 var bot: ExtensibleBot? = null
 
-suspend fun onMessage(message: Message) {
-    if (message.author?.id != Constants.USER_LIBBIE_ID)
+suspend fun onMessage(message: Message, commandMessage: Message? = null) {
+    if (message.author?.id != Constants.USER_LIBBIE_ID) {
+        commandMessage?.reply(true) { content = "Message <${message.getJumpUrl()}>: Author isn't Libbie!" }
         return
+    }
     for (attach in message.attachments) {
         if (!attach.filename.startsWith("Shang_Mu_Architect_")
             || !attach.filename.endsWith(".zip"))
@@ -130,7 +132,7 @@ class ScraperExtension : Extension() {
 
             action {
                 with(arguments) {
-                    onMessage(target)
+                    onMessage(target, message)
                 }
             }
         }
