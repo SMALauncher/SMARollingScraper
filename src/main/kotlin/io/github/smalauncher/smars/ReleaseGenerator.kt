@@ -71,9 +71,15 @@ class ReleaseGenerator(val client: HttpClient) {
 
             digest.reset()
             bais.reset()
-            while (bais.available() > 0) {
+            while (bais.available() >= digestBuf.size) {
                 bais.read(digestBuf)
                 digest.update(digestBuf)
+            }
+            val stillAvailable = bais.available()
+            if (stillAvailable > 0) {
+                val tmpArr = ByteArray(stillAvailable)
+                bais.read(tmpArr)
+                digest.update(tmpArr)
             }
             val hash = digest.digest().toHexString()
             digest.reset()
