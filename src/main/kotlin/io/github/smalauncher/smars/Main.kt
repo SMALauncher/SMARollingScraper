@@ -47,11 +47,17 @@ fun getEnvString(name: String, desc: String): String {
     return value
 }
 
+fun shouldRegisterShutdownCommand(): Boolean {
+    val value = System.getenv("SHUTDOWN_COMMAND") ?: null ?: return false
+    return value.toBoolean()
+}
+
 val token = getEnvString("TOKEN", "your Discord bot's token")
 val appId = getEnvString("GH_APP_ID", "your GitHub App's ID")
 val appKey = getEnvString("GH_APP_KEY", "your GitHub App's PEM key")
 val repoOrg = getEnvString("GH_REPO_ORG", "the organization owning the GitHub repository to upload releases to")
 val repoName = getEnvString("GH_REPO_NAME", "the name of the GitHub repository to upload releases to")
+val shutdownCommand = shouldRegisterShutdownCommand()
 
 val client = HttpClient(CIO) {
     install(JsonFeature) {
@@ -153,19 +159,21 @@ class ScraperExtension : Extension() {
             }
         }
 
-        command {
-            name = "shutdown"
-            aliases = arrayOf("goaway")
-            description = "Gracefully shuts down the bot."
+        if (shutdownCommand) {
+            command {
+                name = "shutdown"
+                aliases = arrayOf("goaway")
+                description = "Gracefully shuts down the bot."
 
-            check { event -> configCheck(event) }
+                check { event -> configCheck(event) }
 
-            action {
-                message.reply(true) {
-                    content = "**okay...** :sob:"
+                action {
+                    message.reply(true) {
+                        content = "**okay...** :sob:"
+                    }
+                    bot.getKoin().get<Kord>().shutdown()
+                    exitProcess(0)
                 }
-                bot.getKoin().get<Kord>().shutdown()
-                exitProcess(0)
             }
         }
     }
