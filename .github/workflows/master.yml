@@ -44,4 +44,4 @@ jobs:
           key: ${{ secrets.GSERV_SSH_KEY }}
           known_hosts: ${{ secrets.GSERV_SSH_KNOWN_HOSTS }}
       - name: Apply new release to gdude's server
-        run: ssh ${{ secrets.GSERV_SSH_USER }}@${{ secrets.GSERV_SSH_HOST }} -p ${{ secrets.GSERV_SSH_PORT }} salt "${{ secrets.GSERV_SSH_HOST }}" state.apply docker/leo-scraper
+        run: ssh ${{ secrets.GSERV_SSH_USER }}@${{ secrets.GSERV_SSH_HOST }} -p ${{ secrets.GSERV_SSH_PORT }} sudo /home/leo40/deploy-scraper.sh
