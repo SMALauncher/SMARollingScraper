@@ -38,3 +38,11 @@ jobs:
       - run: docker build -t ghcr.io/smalauncher/smarollingscraper:latest -t ghcr.io/smalauncher/smarollingscraper:${GITHUB_SHA} .
       - run: docker push ghcr.io/smalauncher/smarollingscraper:latest
       - run: docker push ghcr.io/smalauncher/smarollingscraper:${GITHUB_SHA}
+      - name: Push new release to gdude's server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.GSERV_SSH_HOST }}
+          port: ${{ secrets.GSERV_SSH_PORT }}
+          username: ${{ secrets.GSERV_SSH_USER }}
+          password: ${{ secrets.GSERV_SSH_PASSWORD }}
+          script: salt "${{ secrets.GSERV_SSH_HOST }}" state.apply docker/leo-scraper

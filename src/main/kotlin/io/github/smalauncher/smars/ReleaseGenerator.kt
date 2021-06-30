@@ -34,7 +34,7 @@ class ReleaseGenerator(val client: HttpClient) {
     }
 
     private fun ByteArray.toHexString(): String {
-        return joinToString { it.toString(16).uppercase(Locale.ROOT) }
+        return joinToString("") { "%02X".format(it) }
     }
 
     suspend fun generate(url: String, filename: String, changelog: String): Result<Release> {
