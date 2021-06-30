@@ -1,0 +1,16 @@
+version: "3"
+services:
+  SMARollingScraper:
+    image: ghcr.io/SMALauncher/SMARollingScraper:latest
+    container_name: SMARollingScraper
+
+    restart: always
+
+    environment:
+      - "GH_REPO_NAME=SMARolling"
+      - "GH_REPO_ORG=SMALauncher"
+
+      - GH_APP_ID
+      - GH_APP_KEY
+      - TOKEN
+

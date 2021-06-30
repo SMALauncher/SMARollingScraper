@@ -4,14 +4,42 @@ import io.ktor.http.*
 import org.kohsuke.github.GitHubBuilder
 import org.kohsuke.github.authorization.OrgAppInstallationAuthorizationProvider
 import org.kohsuke.github.extras.authorization.JWTTokenProvider
-import java.nio.file.Path
+import java.security.KeyFactory
+import java.security.PrivateKey
+import java.security.spec.InvalidKeySpecException
+import java.security.spec.PKCS8EncodedKeySpec
+import java.util.*
 import kotlin.io.path.inputStream
 
-class ReleaseUploader(appId: String, keyPath: String, repoOrg: String, repoName: String) {
+class ReleaseUploader(appId: String, appKey: String, repoOrg: String, repoName: String) {
     private val repo = "$repoOrg/$repoName"
 
+    private fun decodePrivateKey(key: String): PrivateKey {
+        if (key.contains(" RSA ")) {
+            throw InvalidKeySpecException(
+                "Private key must be a PKCS#8 formatted string, to convert it from PKCS#1 use: "
+                        + "openssl pkcs8 -topk8 -inform PEM -outform PEM -in current-key.pem -out new-key.pem -nocrypt"
+            )
+        }
+        if (key.contains("-----BEGIN PRIVATE KEY-----") || key.contains("-----END PRIVATE KEY-----") || key.contains("\n")) {
+            throw InvalidKeySpecException(
+                "Private key must be only the key data itself, without any comments or whitespace"
+            )
+        }
+
+        val kf = KeyFactory.getInstance("RSA")
+
+        try {
+            val decoded = Base64.getDecoder().decode(key)
+            val spec = PKCS8EncodedKeySpec(decoded)
+            return kf.generatePrivate(spec)
+        } catch (e: Exception) {
+            throw InvalidKeySpecException("Failed to decode private key", e)
+        }
+    }
+
     private val gh = GitHubBuilder()
-        .withAuthorizationProvider(OrgAppInstallationAuthorizationProvider(repoOrg, JWTTokenProvider(appId, Path.of(keyPath))))
+        .withAuthorizationProvider(OrgAppInstallationAuthorizationProvider(repoOrg, JWTTokenProvider(appId, decodePrivateKey(appKey))))
         .build()
 
     fun upload(release: Release): String {
