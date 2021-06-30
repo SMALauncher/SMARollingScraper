@@ -34,7 +34,7 @@ fun Throwable.stackTraceToCodeBlock(): String {
 
 fun String.stripCodeBlock(): String {
     if (!this.startsWith("```\n") || !this.endsWith("```"))
-        return this;
+        return this
     return this.substring(4..this.length - 4)
 }
 
@@ -155,13 +155,14 @@ class ScraperExtension : Extension() {
 
         command {
             name = "shutdown"
+            aliases = arrayOf("goaway")
             description = "Gracefully shuts down the bot."
 
             check { event -> configCheck(event) }
 
             action {
                 message.reply(true) {
-                    content = "**Shutting down...**"
+                    content = "**okay...** :cry:"
                 }
                 bot.getKoin().get<Kord>().shutdown()
                 exitProcess(0)
