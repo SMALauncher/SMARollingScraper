@@ -35,6 +35,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
-      - run: docker build -t ghcr.io/SMALauncher/SMARollingRepo:latest -t ghcr.io/SMALauncher/SMARollingRepod:${GITHUB_SHA} .
-      - run: docker push ghcr.io/SMALauncher/SMARollingRepo:latest
-      - run: docker push ghcr.io/SMALauncher/SMARollingRepo:${GITHUB_SHA}
+      - run: docker build -t ghcr.io/SMALauncher/SMARollingScraper:latest -t ghcr.io/SMALauncher/SMARollingScraper:${GITHUB_SHA} .
+      - run: docker push ghcr.io/SMALauncher/SMARollingScraper:latest
+      - run: docker push ghcr.io/SMALauncher/SMARollingScraper:${GITHUB_SHA}
