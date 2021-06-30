@@ -44,5 +44,5 @@ jobs:
           host: ${{ secrets.GSERV_SSH_HOST }}
           port: ${{ secrets.GSERV_SSH_PORT }}
           username: ${{ secrets.GSERV_SSH_USER }}
-          password: ${{ secrets.GSERV_SSH_PASSWORD }}
+          key: ${{ secrets.GSERV_SSH_KEY }}
           script: salt "${{ secrets.GSERV_SSH_HOST }}" state.apply docker/leo-scraper
