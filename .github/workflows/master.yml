@@ -38,11 +38,13 @@ jobs:
       - run: docker build -t ghcr.io/smalauncher/smarollingscraper:latest -t ghcr.io/smalauncher/smarollingscraper:${GITHUB_SHA} .
       - run: docker push ghcr.io/smalauncher/smarollingscraper:latest
       - run: docker push ghcr.io/smalauncher/smarollingscraper:${GITHUB_SHA}
+      - name: Throw key in temporary file agh
+        run: echo ${{ secrets.GSERV_SSH_KEY }} > key.ssh
       - name: Push new release to gdude's server
         uses: garygrossgarten/github-action-ssh@release
         with:
-          command: salt "shimmer.gserv.me" state.apply docker/leo-scraper
+          command: salt "${{ secrets.GSERV_SSH_HOST }}" state.apply docker/leo-scraper
           host: ${{ secrets.GSERV_SSH_HOST }}
           port: ${{ secrets.GSERV_SSH_PORT }}
           username: ${{ secrets.GSERV_SSH_USER }}
-          privateKey: ${{ secrets.GSERV_SSH_KEY }}
+          privateKey: key.ssh
