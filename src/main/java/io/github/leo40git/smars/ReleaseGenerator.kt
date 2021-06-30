@@ -35,7 +35,7 @@ class ReleaseGenerator(val client: HttpClient) {
         return joinToString { it.toString(16).uppercase(Locale.ROOT) }
     }
 
-    suspend fun generate(url: String, filename: String): Result<Release> {
+    suspend fun generate(url: String, filename: String, changelog: String): Result<Release> {
         val res: HttpResponse = client.get(url)
 
         val lastUnderscore = filename.lastIndexOf('_')
@@ -84,7 +84,7 @@ class ReleaseGenerator(val client: HttpClient) {
                 it.write(Json.encodeToString(JsonObject.serializer(), metaObj))
             }
 
-            return@withContext Result.success(Release(version, file, filename, metaFile))
+            return@withContext Result.success(Release(version, changelog, file, filename, metaFile))
         }
     }
 }

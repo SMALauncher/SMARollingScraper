@@ -9,7 +9,7 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.reply
 import dev.kord.core.entity.Message
-import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.MessageCreateBuilder
 import io.ktor.client.*
@@ -30,6 +30,12 @@ suspend fun Message.reply(mention: Boolean = false, builder: MessageCreateBuilde
 
 fun Throwable.stackTraceToCodeBlock(): String {
     return "```\n" + stackTraceToString() + "```"
+}
+
+fun String.stripCodeBlock(): String {
+    if (!this.startsWith("```\n") || !this.endsWith("```"))
+        return this;
+    return this.substring(4..this.length - 4)
 }
 
 fun getEnvString(name: String, desc: String): String {
@@ -57,41 +63,51 @@ val uploader = ReleaseUploader(appId, keyPath, repoOrg, repoName)
 
 var bot: ExtensibleBot? = null
 
-suspend fun onMessage(message: Message, commandMessage: Message? = null) {
-    if (message.author?.id != Constants.USER_LIBBIE_ID) {
-        commandMessage?.reply(true) { content = "Message <${message.getJumpUrl()}>: Author isn't Libbie!" }
-        return
-    }
+suspend fun onMessage(message: Message) {
     for (attach in message.attachments) {
         if (!attach.filename.startsWith("Shang_Mu_Architect_")
             || !attach.filename.endsWith(".zip"))
             continue
-        val result = generator.generate(attach.url, attach.filename)
+        
+        val logChan = bot!!.getKoin().get<Kord>().getChannelOf<GuildMessageChannel>(Constants.CHANNEL_LOG_ID)
+            ?: throw RuntimeException("Can't find log channel")
+        
+        logChan.createMessage {
+            embed {
+                color = Colors.Discord.GREYPLE
+                title = "**HUH!** New release detected!"
+                footer {
+                    text = "Message: " + message.getJumpUrl()
+                }
+            }
+        }
+
+        val result = generator.generate(attach.url, attach.filename, message.content.stripCodeBlock())
         if (result.isSuccess) {
             val release = result.getOrThrow()
-            bot!!.getKoin().get<Kord>().getChannelOf<TextChannel>(Constants.CHANNEL_LOG_ID)?.createMessage {
+            logChan.createMessage {
                 embed {
                     color = Colors.YELLOW
                     title = "**HMM!** New release generated!"
                     description = "Now uploading v${release.version}..."
                     footer {
-                        text = "Message:" + message.getJumpUrl()
+                        text = "Message: " + message.getJumpUrl()
                     }
                 }
             }
             val url = uploader.upload(result.getOrThrow())
-            bot!!.getKoin().get<Kord>().getChannelOf<TextChannel>(Constants.CHANNEL_LOG_ID)?.createMessage {
+            logChan.createMessage {
                 embed {
                     color = Colors.GREEN
                     title = "**YAY!** New release uploaded!"
                     description = "Successfully uploaded v${release.version}! Look at it [here]($url)!"
                     footer {
-                        text = "Message:" + message.getJumpUrl()
+                        text = "Message: " + message.getJumpUrl()
                     }
                 }
             }
         } else {
-            bot!!.getKoin().get<Kord>().getChannelOf<TextChannel>(Constants.CHANNEL_LOG_ID)?.createMessage {
+            logChan.createMessage {
                 embed {
                     color = Colors.RED
                     title = "**ACK!** Failed to generate new release!"
@@ -132,7 +148,7 @@ class ScraperExtension : Extension() {
 
             action {
                 with(arguments) {
-                    onMessage(target, message)
+                    onMessage(target)
                 }
             }
         }
@@ -154,8 +170,7 @@ class ScraperExtension : Extension() {
     }
 
     class ScrapeArgs : Arguments() {
-        val target by message("target", description = "Message to scrape from",
-            requireGuild = true, requiredGuild = suspend { Constants.CHANNEL_ROLLING_ID })
+        val target by message("target", description = "Message to scrape from")
     }
 }
 
