@@ -10,14 +10,16 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import java.io.File
-import java.io.FileInputStream
+import java.io.ByteArrayInputStream
 import java.io.FileNotFoundException
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.util.*
 import java.util.zip.ZipInputStream
+import kotlin.io.path.bufferedWriter
+import kotlin.io.path.writeBytes
 
 class ReleaseGenerator(val client: HttpClient) {
     private var digest: MessageDigest
@@ -44,12 +46,14 @@ class ReleaseGenerator(val client: HttpClient) {
 
         @Suppress("BlockingMethodInNonBlockingContext") // theoretically, blocking here should be fine
         return withContext(Dispatchers.IO) {
-            val file = File.createTempFile("smars_tmp_", filename)
+            val path = Files.createTempFile("smars_tmp_", filename)
             val responseBody: ByteArray = res.receive()
-            file.writeBytes(responseBody)
+            val bais = ByteArrayInputStream(responseBody)
+            path.writeBytes(responseBody)
 
             var exeName = ""
-            val zis = ZipInputStream(FileInputStream(file))
+            bais.reset()
+            val zis = ZipInputStream(bais)
             zis.use {
                 var entry = it.nextEntry
                 while (entry != null) {
@@ -67,24 +71,24 @@ class ReleaseGenerator(val client: HttpClient) {
                 return@withContext Result.failure(FileNotFoundException("Could not find Shang Mu Architect EXE!"))
 
             digest.reset()
-            val fis = FileInputStream(file)
-            fis.use {
+            bais.reset()
+            bais.use {
                 it.read(digestBuf)
                 digest.update(digestBuf)
             }
             val hash = digest.digest().toHexString()
             digest.reset()
 
-            val metaFile = File.createTempFile("smars_tmp_", "meta.json")
+            val metaPath = Files.createTempFile("smars_tmp_", "meta.json")
             val metaObj = buildJsonObject {
                 put("asset_md5", hash)
                 put("exe_name", exeName)
             }
-            metaFile.bufferedWriter(StandardCharsets.UTF_8).use {
+            metaPath.bufferedWriter(StandardCharsets.UTF_8).use {
                 it.write(Json.encodeToString(JsonObject.serializer(), metaObj))
             }
 
-            return@withContext Result.success(Release(version, changelog, file, filename, metaFile))
+            return@withContext Result.success(Release(version, changelog, path, filename, metaPath))
         }
     }
 }

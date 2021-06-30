@@ -5,6 +5,7 @@ import org.kohsuke.github.GitHubBuilder
 import org.kohsuke.github.authorization.OrgAppInstallationAuthorizationProvider
 import org.kohsuke.github.extras.authorization.JWTTokenProvider
 import java.nio.file.Path
+import kotlin.io.path.inputStream
 
 class ReleaseUploader(appId: String, keyPath: String, repoOrg: String, repoName: String) {
     private val repo = "$repoOrg/$repoName"
@@ -24,6 +25,7 @@ class ReleaseUploader(appId: String, keyPath: String, repoOrg: String, repoName:
         release.meta.inputStream().use {
             ghr.uploadAsset("meta.json", it, ContentType.Application.Json.toString())
         }
+        release.delete()
         return ghr.htmlUrl.toString()
     }
 }
