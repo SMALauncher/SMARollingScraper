@@ -1,8 +1,8 @@
 version: "3"
 services:
   SMARollingScraper:
-    image: ghcr.io/SMALauncher/SMARollingScraper:latest
-    container_name: SMARollingScraper
+    image: ghcr.io/smalauncher/smarollingscraper:latest
+    container_name: sma-rolling-scraper
 
     restart: always
 
