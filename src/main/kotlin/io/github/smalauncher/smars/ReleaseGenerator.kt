@@ -16,7 +16,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.*
 import java.util.zip.ZipInputStream
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.writeBytes
@@ -72,8 +71,8 @@ class ReleaseGenerator(val client: HttpClient) {
 
             digest.reset()
             bais.reset()
-            bais.use {
-                it.read(digestBuf)
+            while (bais.available() > 0) {
+                bais.read(digestBuf)
                 digest.update(digestBuf)
             }
             val hash = digest.digest().toHexString()
