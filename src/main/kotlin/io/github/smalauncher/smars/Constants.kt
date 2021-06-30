@@ -1,4 +1,4 @@
-package io.github.leo40git.smars
+package io.github.smalauncher.smars
 
 import dev.kord.common.entity.Snowflake
 

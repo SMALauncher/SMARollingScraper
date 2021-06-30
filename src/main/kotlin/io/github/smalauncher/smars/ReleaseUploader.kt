@@ -1,4 +1,4 @@
-package io.github.leo40git.smars
+package io.github.smalauncher.smars
 
 import io.ktor.http.*
 import org.kohsuke.github.GitHubBuilder

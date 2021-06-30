@@ -1,4 +1,4 @@
-package io.github.leo40git.smars
+package io.github.smalauncher.smars
 
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.commands.converters.impl.message
@@ -140,7 +140,7 @@ class ScraperExtension : Extension() {
     }
 
     override suspend fun setup() {
-        command(::ScrapeArgs) {
+        command(ScraperExtension::ScrapeArgs) {
             name = "scrape"
             description = "Scrapes a rolling release from a specific message."
 

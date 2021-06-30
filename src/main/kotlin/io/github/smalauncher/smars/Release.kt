@@ -1,4 +1,4 @@
-package io.github.leo40git.smars
+package io.github.smalauncher.smars
 
 import java.nio.file.Files
 import java.nio.file.Path
