@@ -140,7 +140,7 @@ class ScraperExtension : Extension() {
     }
 
     override suspend fun setup() {
-        command(ScraperExtension::ScrapeArgs) {
+        command(::ScrapeArgs) {
             name = "scrape"
             description = "Scrapes a rolling release from a specific message."
 
