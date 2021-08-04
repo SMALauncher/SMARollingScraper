@@ -1,6 +1,7 @@
 package io.github.smalauncher.smars
 
 import com.kotlindiscord.kord.extensions.ExtensibleBot
+import com.kotlindiscord.kord.extensions.checks.types.CheckContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.message
 import com.kotlindiscord.kord.extensions.commands.parser.Arguments
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -11,7 +12,9 @@ import dev.kord.core.behavior.reply
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.message.MessageCreateBuilder
+import dev.kord.rest.builder.message.create.MessageCreateBuilder
+import dev.kord.rest.builder.message.create.allowedMentions
+import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.features.json.*
@@ -140,9 +143,11 @@ suspend fun onMessage(message: Message) {
 class ScraperExtension : Extension() {
     override val name: String = "scraper"
 
-    private fun configCheck(event: MessageCreateEvent): Boolean {
-        return (event.message.channelId == Constants.CHANNEL_CONFIG_ID
-                && event.message.author?.id == Constants.USER_OWNER_ID)
+    private fun CheckContext<MessageCreateEvent>.configCheck(event: MessageCreateEvent) {
+        if (event.message.author?.id != Constants.USER_OWNER_ID)
+            fail("You're not the owner!")
+        if (event.message.channelId != Constants.CHANNEL_CONFIG_ID)
+            fail("This isn't the config channel!")
     }
 
     override suspend fun setup() {
@@ -150,7 +155,7 @@ class ScraperExtension : Extension() {
             name = "scrape"
             description = "Scrapes a rolling release from a specific message."
 
-            check { event -> configCheck(event) }
+            check { configCheck(event) }
 
             action {
                 with(arguments) {
@@ -165,7 +170,7 @@ class ScraperExtension : Extension() {
                 aliases = arrayOf("goaway")
                 description = "Gracefully shuts down the bot."
 
-                check { event -> configCheck(event) }
+                check { configCheck(event) }
 
                 action {
                     message.reply(true) {
