@@ -1,11 +1,57 @@
 package io.github.smalauncher.smars
 
 import dev.kord.common.entity.Snowflake
+import kotlin.system.exitProcess
 
 object Constants {
-    val CHANNEL_ROLLING_ID = Snowflake(836080736939409418)
-    val CHANNEL_CONFIG_ID = Snowflake(857240971837833226)
-    val CHANNEL_LOG_ID = Snowflake(857240987214544938)
-    val USER_OWNER_ID = Snowflake(169456051920437248)
-    val USER_LIBBIE_ID = Snowflake(166395113570959360)
+    object Env {
+        val TOKEN = getEnvString("TOKEN", "your Discord bot's token")
+        val APP_ID = getEnvString("GH_APP_ID", "your GitHub App's ID")
+        val APP_KEY = getEnvString("GH_APP_KEY", "your GitHub App's PEM key")
+        val REPO_ORG = getEnvString("GH_REPO_ORG", "the organization owning the GitHub repository to upload releases to")
+        val REPO_NAME = getEnvString("GH_REPO_NAME", "the name of the GitHub repository to upload releases to")
+        val SHUTDOWN_COMMAND = shouldRegisterShutdownCommand()
+
+        private fun getEnvString(name: String, desc: String): String {
+            val value = System.getenv(name) ?: null
+            if (value == null) {
+                println("Missing environment variable \"$name\"! Please set it to $desc.")
+                exitProcess(1)
+            }
+            return value
+        }
+
+        private fun shouldRegisterShutdownCommand(): Boolean {
+            val value = System.getenv("SHUTDOWN_COMMAND") ?: null ?: return false
+            return value.toBoolean()
+        }
+    }
+
+    object Channels {
+        /**
+         * #downloads-rolling in the Shang Mu Architect Discord.
+         */
+        val ROLLING = Snowflake(836080736939409418)
+
+        /**
+         * #smars-config in A.s.s.
+         */
+        val CONFIG = Snowflake(857240971837833226)
+
+        /**
+         * #smars-log in A.s.s.
+         */
+        val LOG = Snowflake(857240987214544938)
+    }
+
+    object Users {
+        /**
+         * It's a-me, Leo!
+         */
+        val OWNER = Snowflake(169456051920437248)
+        /**
+         * The brick receiver herself.
+         */
+        val LIBBIE = Snowflake(166395113570959360)
+    }
 }

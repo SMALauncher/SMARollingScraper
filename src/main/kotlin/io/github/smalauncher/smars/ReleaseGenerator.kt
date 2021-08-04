@@ -6,18 +6,12 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.io.ByteArrayInputStream
 import java.io.FileNotFoundException
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.util.zip.ZipInputStream
-import kotlin.io.path.bufferedWriter
 import kotlin.io.path.writeBytes
 
 class ReleaseGenerator(val client: HttpClient) {
@@ -38,6 +32,7 @@ class ReleaseGenerator(val client: HttpClient) {
 
     suspend fun generate(url: String, filename: String, changelog: String): Result<Release> {
         val res: HttpResponse = client.get(url)
+        val responseBody: ByteArray = res.receive()
 
         val lastUnderscore = filename.lastIndexOf('_')
         val lastDot = filename.lastIndexOf('.')
@@ -45,13 +40,8 @@ class ReleaseGenerator(val client: HttpClient) {
 
         @Suppress("BlockingMethodInNonBlockingContext") // theoretically, blocking here should be fine
         return withContext(Dispatchers.IO) {
-            val path = Files.createTempFile("smars_tmp_", filename)
-            val responseBody: ByteArray = res.receive()
-            val bais = ByteArrayInputStream(responseBody)
-            path.writeBytes(responseBody)
-
             var exeName = ""
-            bais.reset()
+            val bais = ByteArrayInputStream(responseBody)
             val zis = ZipInputStream(bais)
             zis.use {
                 var entry = it.nextEntry
@@ -77,23 +67,15 @@ class ReleaseGenerator(val client: HttpClient) {
             }
             val stillAvailable = bais.available()
             if (stillAvailable > 0) {
-                val tmpArr = ByteArray(stillAvailable)
-                bais.read(tmpArr)
-                digest.update(tmpArr)
+                bais.read(digestBuf)
+                digest.update(digestBuf, 0, stillAvailable)
             }
             val hash = digest.digest().toHexString()
             digest.reset()
 
-            val metaPath = Files.createTempFile("smars_tmp_", "meta.json")
-            val metaObj = buildJsonObject {
-                put("asset_md5", hash)
-                put("exe_name", exeName)
-            }
-            metaPath.bufferedWriter(StandardCharsets.UTF_8).use {
-                it.write(Json.encodeToString(JsonObject.serializer(), metaObj))
-            }
-
-            return@withContext Result.success(Release(version, changelog, path, filename, metaPath))
+            val path = Files.createTempFile("smars_tmp_", filename)
+            path.writeBytes(responseBody)
+            return@withContext Result.success(Release(version, changelog, path, filename, exeName, hash))
         }
     }
 }
