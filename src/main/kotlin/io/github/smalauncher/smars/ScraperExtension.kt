@@ -124,7 +124,7 @@ class ScraperExtension : Extension() {
                     description = detectionType.description
                     field {
                         name = "Message Jump URL"
-                        value = "Message: " + message.getJumpUrl()
+                        value = message.getJumpUrl()
                     }
                 }
             }
