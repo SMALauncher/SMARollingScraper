@@ -6,28 +6,13 @@ import com.kotlindiscord.kord.extensions.commands.parser.Arguments
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.utils.getJumpUrl
 import dev.kord.core.Kord
-import dev.kord.core.behavior.MessageBehavior
 import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.behavior.reply
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.message.create.MessageCreateBuilder
-import dev.kord.rest.builder.message.create.allowedMentions
 import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
-import kotlin.system.exitProcess
-
-private suspend fun MessageBehavior.reply(mention: Boolean = false, builder: MessageCreateBuilder.() -> Unit): Message {
-    return this.reply {
-        allowedMentions {
-            repliedUser = mention
-        }
-
-        builder()
-    }
-}
 
 class ScraperExtension : Extension() {
     override val name: String = "scraper"
@@ -72,24 +57,6 @@ class ScraperExtension : Extension() {
             action {
                 with(arguments) {
                     onMessage(target, DetectionType.Manual)
-                }
-            }
-        }
-
-        if (Constants.Env.SHUTDOWN_COMMAND) {
-            command {
-                name = "shutdown"
-                aliases = arrayOf("goaway")
-                description = "Gracefully shuts down the bot."
-
-                check { configCheck(event) }
-
-                action {
-                    message.reply(true) {
-                        content = "**okay...** :sob:"
-                    }
-                    bot.getKoin().get<Kord>().shutdown()
-                    exitProcess(0)
                 }
             }
         }

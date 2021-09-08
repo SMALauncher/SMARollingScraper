@@ -10,7 +10,6 @@ object Constants {
         val APP_KEY = getEnvString("GH_APP_KEY", "your GitHub App's PEM key")
         val REPO_ORG = getEnvString("GH_REPO_ORG", "the organization owning the GitHub repository to upload releases to")
         val REPO_NAME = getEnvString("GH_REPO_NAME", "the name of the GitHub repository to upload releases to")
-        val SHUTDOWN_COMMAND = shouldRegisterShutdownCommand()
 
         private fun getEnvString(name: String, desc: String): String {
             val value = System.getenv(name) ?: null
@@ -19,11 +18,6 @@ object Constants {
                 exitProcess(1)
             }
             return value
-        }
-
-        private fun shouldRegisterShutdownCommand(): Boolean {
-            val value = System.getenv("SHUTDOWN_COMMAND") ?: null ?: return false
-            return value.toBoolean()
         }
     }
 
