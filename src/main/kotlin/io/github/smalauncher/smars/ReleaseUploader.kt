@@ -15,7 +15,7 @@ import java.util.*
 import kotlin.io.path.inputStream
 
 class ReleaseUploader(appId: String, appKey: String, repoOrg: String, repoName: String) {
-    private val repo = "$repoOrg/$repoName"
+    private val repoPath = "$repoOrg/$repoName"
 
     private fun decodePrivateKey(key: String): PrivateKey {
         if (key.contains(" RSA ")) {
@@ -45,20 +45,36 @@ class ReleaseUploader(appId: String, appKey: String, repoOrg: String, repoName: 
         .withAuthorizationProvider(OrgAppInstallationAuthorizationProvider(repoOrg, JWTTokenProvider(appId, decodePrivateKey(appKey))))
         .build()
 
+    data class Result(val url: String, val replaced: Boolean)
+
     @Suppress("BlockingMethodInNonBlockingContext")
-    suspend fun upload(release: Release): String {
+    suspend fun upload(release: Release): Result {
         return withContext(Dispatchers.IO) {
-            val ghr = gh.getRepository(repo).createRelease("v${release.version}")
+            var replaced = false
+
+            val repo = gh.getRepository(repoPath)
+
+            var ghr = repo.getReleaseByTagName("v${release.version}")
+            if (ghr != null) {
+                // try to delete the tag as well
+                repo.getRef(ghr.tagName)?.delete()
+                ghr.delete()
+                replaced = true
+            }
+
+            ghr = repo.createRelease("v${release.version}")
                 .name("Shang Mu Architect ${release.version}")
                 .body(release.changelog)
                 .create()
+
             release.zip.inputStream().use {
                 ghr.uploadAsset(release.zipName, it, ContentType.Application.Zip.toString())
             }
             val metaStream = ByteArrayInputStream(release.metaContents.toByteArray(Charsets.UTF_8))
             ghr.uploadAsset("meta.json", metaStream, ContentType.Application.Json.toString())
+
             release.delete()
-            return@withContext ghr.htmlUrl.toString()
+            return@withContext Result(ghr.htmlUrl.toString(), replaced)
         }
     }
 }

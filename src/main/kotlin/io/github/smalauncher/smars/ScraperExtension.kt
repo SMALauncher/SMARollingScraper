@@ -143,12 +143,18 @@ class ScraperExtension : Extension() {
                     }
                 }
                 try {
-                    val url = uploader.upload(result.getOrThrow())
+                    val uResult = uploader.upload(result.getOrThrow())
                     logChan.createMessage {
                         embed {
                             color = Colors.GREEN
                             title = "**YAY!** New release uploaded!"
-                            description = "Successfully uploaded v${release.version}! Look at it [here]($url)!"
+                            description = "Successfully uploaded v${release.version}! Look at it [here](${uResult.url})!"
+                            if (uResult.replaced) {
+                                field {
+                                    name = "Old version replaced"
+                                    value = "This version has already been uploaded! Therefore, the old release was replaced."
+                                }
+                            }
                             footer {
                                 text = "Message: " + message.getJumpUrl()
                             }
