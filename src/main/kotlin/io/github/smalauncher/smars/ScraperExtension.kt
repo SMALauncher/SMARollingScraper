@@ -63,6 +63,11 @@ class ScraperExtension : Extension() {
                 }
                 try {
                     onMessage(arguments.target, DetectionType.Manual)
+                } catch (e: Throwable) {
+                    respond {
+                        content = "Sorry man, couldn't do it!\n\n__**Reason:**__${e.message ?: "Unknown"}\n" +
+                                "__**Stack trace:**__```\n${e.stackTraceToCodeBlock()}```"
+                    }
                 } catch (e: Exception) {
                     respond {
                         content = "Sorry man, couldn't do it!\n\n__**Reason:**__${e.message ?: "Unknown"}\n" +
