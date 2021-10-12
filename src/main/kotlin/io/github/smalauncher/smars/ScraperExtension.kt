@@ -61,7 +61,14 @@ class ScraperExtension : Extension() {
                 respond {
                     content = "Gotcha, will now try to scrape release from that message!"
                 }
-                onMessage(arguments.target, DetectionType.Manual)
+                try {
+                    onMessage(arguments.target, DetectionType.Manual)
+                } catch (e: Exception) {
+                    respond {
+                        content = "Sorry man, couldn't do it!\n\n__**Reason:**__${e.message ?: "Unknown"}\n" +
+                                "__**Stack trace:**__```\n${e.stackTraceToCodeBlock()}```"
+                    }
+                }
             }
         }
 
