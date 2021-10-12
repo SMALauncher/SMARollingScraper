@@ -2,16 +2,12 @@ package io.github.smalauncher.smars
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.message
-import com.kotlindiscord.kord.extensions.components.components
-import com.kotlindiscord.kord.extensions.components.publicButton
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.event
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.getJumpUrl
-import dev.kord.common.entity.ButtonStyle
-import dev.kord.common.entity.DiscordPartialEmoji
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.Message
@@ -21,7 +17,6 @@ import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import kotlin.system.exitProcess
-import kotlin.time.Duration
 
 class ScraperExtension : Extension() {
     override val name: String = "scraper"
@@ -33,8 +28,22 @@ class ScraperExtension : Extension() {
 
     private lateinit var logChan: GuildMessageChannel
 
+    private fun String.truncate(maxLength: Int): String {
+        return if (length > maxLength - 1)
+            substring(0 until maxLength - 2) + "…"
+        else
+            this
+    }
+
+    private fun Throwable.messageOrEmpty(prefix: String = ": "): String {
+        return if (message == null)
+            ""
+        else
+            prefix + message
+    }
+
     private fun Throwable.stackTraceToCodeBlock(): String {
-        return "```\n" + stackTraceToString() + "```"
+        return "```\n" + stackTraceToString().truncate(1000) + "```"
     }
 
     private fun String.stripCodeBlock(): String {
@@ -66,72 +75,29 @@ class ScraperExtension : Extension() {
 
             action {
                 respond {
-                    content = "This command is temporarily disabled."
-                }
-                return@action
-
-                respond {
                     content = "Gotcha, will now try to scrape release from that message!"
                 }
-                try {
-                    onMessage(arguments.target, DetectionType.Manual)
-                } catch (e: Throwable) {
-                    respond {
-                        content = "Sorry man, couldn't do it!\n\n__**Reason:**__${e.message ?: "Unknown"}\n" +
-                                "__**Stack trace:**__```\n${e.stackTraceToCodeBlock()}```"
-                    }
-                } catch (e: Exception) {
-                    respond {
-                        content = "Sorry man, couldn't do it!\n\n__**Reason:**__${e.message ?: "Unknown"}\n" +
-                                "__**Stack trace:**__```\n${e.stackTraceToCodeBlock()}```"
-                    }
-                }
+                onMessage(arguments.target, DetectionType.Manual)
             }
         }
 
-        @OptIn(kotlin.time.ExperimentalTime::class)
-        ephemeralSlashCommand {
-            name = "shutdown"
-            description = "Shuts the bot down."
-            guild(Constants.Guilds.ASS)
+        if (Constants.Env.IS_LOCAL) {
+            ephemeralSlashCommand {
+                name = "shutdown"
+                description = "Shuts the bot down."
+                guild(Constants.Guilds.ASS)
 
-            check {
-                failIf(event.interaction.user.id != Constants.Users.OWNER, "You're not the owner!")
-                failIf(event.interaction.channelId != Constants.Channels.CONFIG, "This isn't the config channel!")
-            }
+                check {
+                    failIf(event.interaction.user.id != Constants.Users.OWNER, "You're not the owner!")
+                    failIf(event.interaction.channelId != Constants.Channels.CONFIG, "This isn't the config channel!")
+                }
 
-            action {
-                respond {
-                    content = "Are you sure????"
-                    components(Duration.seconds(30)) {
-                        publicButton {
-                            style = ButtonStyle.Success
-                            partialEmoji = DiscordPartialEmoji(name = "❌")
-                            label = "NO!!!"
-
-                            action {
-                                respond {
-                                    content = "I get to live another day!"
-                                }
-                                removeAll()
-                            }
-                        }
-
-                        publicButton {
-                            style = ButtonStyle.Danger
-                            partialEmoji = DiscordPartialEmoji(name = "✔️")
-                            label = "Yes..."
-
-                            action {
-                                respond {
-                                    content = "**okay...** :sob:"
-                                }
-                                removeAll()
-                                this@ephemeralSlashCommand.kord.shutdown()
-                                exitProcess(0)
-                            }
-                        }
+                action {
+                    respond {
+                        content = "**okay...** :sob:"
                     }
+                    this@ephemeralSlashCommand.kord.shutdown()
+                    exitProcess(0)
                 }
             }
         }
@@ -208,7 +174,7 @@ class ScraperExtension : Extension() {
                             title = "**BOO!** Failed to upload new release!!"
                             field {
                                 name = "Reason"
-                                value = e.message ?: "<unknown>"
+                                value = "${e.javaClass.name}${e.messageOrEmpty()}"
                                 inline = true
                             }
                             field {
@@ -227,7 +193,7 @@ class ScraperExtension : Extension() {
                             title = "**BOO!** Failed to upload new release!!"
                             field {
                                 name = "Reason"
-                                value = e.message ?: "<unknown>"
+                                value = "${e.javaClass.name}${e.messageOrEmpty()}"
                                 inline = true
                             }
                             field {
@@ -247,7 +213,8 @@ class ScraperExtension : Extension() {
                         title = "**ACK!** Failed to generate new release!"
                         field {
                             name = "Reason"
-                            value = result.exceptionOrNull()?.message ?: "<unknown>"
+                            val e = result.exceptionOrNull()
+                            value = if (e == null) "<unknown>" else "${e.javaClass.name}${e.messageOrEmpty()}"
                             inline = true
                         }
                         field {

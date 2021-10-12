@@ -57,7 +57,7 @@ class ReleaseUploader(appId: String, appKey: String, repoOrg: String, repoName: 
             var ghr = repo.getReleaseByTagName("v${release.version}")
             if (ghr != null) {
                 // try to delete the tag as well
-                repo.getRef(ghr.tagName)?.delete()
+                repo.getRef("tags/${ghr.tagName}")?.delete()
                 ghr.delete()
                 replaced = true
             }

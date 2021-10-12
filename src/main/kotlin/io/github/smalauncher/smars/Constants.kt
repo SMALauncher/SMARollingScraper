@@ -11,6 +11,8 @@ object Constants {
         val REPO_ORG = getEnvString("GH_REPO_ORG", "the organization owning the GitHub repository to upload releases to")
         val REPO_NAME = getEnvString("GH_REPO_NAME", "the name of the GitHub repository to upload releases to")
 
+        val IS_LOCAL = System.getenv("IS_LOCAL")?.toBoolean() ?: false
+
         private fun getEnvString(name: String, desc: String): String {
             val value = System.getenv(name) ?: null
             if (value == null) {
