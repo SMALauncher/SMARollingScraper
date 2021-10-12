@@ -137,12 +137,12 @@ class ScraperExtension : Extension() {
                             title = "**BOO!** Failed to upload new release!!"
                             field {
                                 name = "Reason"
-                                value = result.exceptionOrNull()?.message ?: "Unknown"
+                                value = e.message ?: "<unknown>"
                                 inline = true
                             }
                             field {
                                 name = "Stack trace"
-                                value = result.exceptionOrNull()?.stackTraceToCodeBlock() ?: "<null>"
+                                value = e.stackTraceToCodeBlock()
                             }
                             footer {
                                 text = "Message: " + message.getJumpUrl()
@@ -157,12 +157,12 @@ class ScraperExtension : Extension() {
                         title = "**ACK!** Failed to generate new release!"
                         field {
                             name = "Reason"
-                            value = result.exceptionOrNull()?.message ?: "Unknown"
+                            value = result.exceptionOrNull()?.message ?: "<unknown>"
                             inline = true
                         }
                         field {
                             name = "Stack trace"
-                            value = result.exceptionOrNull()?.stackTraceToCodeBlock() ?: "<null>"
+                            value = result.exceptionOrNull()?.stackTraceToCodeBlock() ?: "<null?!>"
                         }
                         footer {
                             text = "Message:" + message.getJumpUrl()
