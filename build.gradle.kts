@@ -23,11 +23,11 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
 
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.4.4-RC4")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-RC1")
     compileOnly("io.jsonwebtoken:jjwt-api:0.11.2")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.2")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.2")
-    implementation("org.kohsuke:github-api:1.132")
+    implementation("org.kohsuke:github-api:1.133")
     implementation("org.slf4j:slf4j-simple:1.7.32")
 }
 

@@ -14,7 +14,7 @@ import java.security.NoSuchAlgorithmException
 import java.util.zip.ZipInputStream
 import kotlin.io.path.writeBytes
 
-class ReleaseGenerator(val client: HttpClient) {
+class ReleaseGenerator(private val client: HttpClient) {
     private var digest: MessageDigest
     private val digestBuf = ByteArray(1024)
 

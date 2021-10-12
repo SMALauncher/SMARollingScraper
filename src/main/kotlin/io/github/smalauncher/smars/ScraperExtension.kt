@@ -1,14 +1,19 @@
 package io.github.smalauncher.smars
 
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.message
-import com.kotlindiscord.kord.extensions.commands.parser.Arguments
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
+import com.kotlindiscord.kord.extensions.extensions.event
+import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
+import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.getJumpUrl
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.GuildMessageChannel
+import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
@@ -32,9 +37,9 @@ class ScraperExtension : Extension() {
         return this.substring(4..this.length - 4)
     }
 
-    private fun CheckContext<MessageCreateEvent>.configCheck(event: MessageCreateEvent) {
-        failIf(event.message.author?.id != Constants.Users.OWNER, "You're not the owner!")
-        failIf(event.message.channelId != Constants.Channels.CONFIG, "This isn't the config channel!")
+    private fun CheckContext<ChatInputCommandInteractionCreateEvent>.configCheck(event: ChatInputCommandInteractionCreateEvent) {
+        failIf(event.interaction.user.id != Constants.Users.OWNER, "You're not the owner!")
+        failIf(event.interaction.channelId != Constants.Channels.CONFIG, "This isn't the config channel!")
     }
 
     override suspend fun setup() {
@@ -48,16 +53,17 @@ class ScraperExtension : Extension() {
             }
         }
 
-        command(::ScrapeArgs) {
+        publicSlashCommand(::ScrapeArgs) {
             name = "scrape"
             description = "Scrapes a rolling release from a specific message."
 
             check { configCheck(event) }
 
             action {
-                with(arguments) {
-                    onMessage(target, DetectionType.Manual)
+                respond {
+                    content = "Gotcha, will now try to scrape release from that message!"
                 }
+                onMessage(arguments.target, DetectionType.Manual)
             }
         }
     }
