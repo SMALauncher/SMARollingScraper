@@ -2,11 +2,16 @@ package io.github.smalauncher.smars
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.message
+import com.kotlindiscord.kord.extensions.components.components
+import com.kotlindiscord.kord.extensions.components.publicButton
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.event
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.getJumpUrl
+import dev.kord.common.entity.ButtonStyle
+import dev.kord.common.entity.DiscordPartialEmoji
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.Message
@@ -16,6 +21,7 @@ import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import kotlin.system.exitProcess
+import kotlin.time.Duration
 
 class ScraperExtension : Extension() {
     override val name: String = "scraper"
@@ -60,6 +66,11 @@ class ScraperExtension : Extension() {
 
             action {
                 respond {
+                    content = "This command is temporarily disabled."
+                }
+                return@action
+
+                respond {
                     content = "Gotcha, will now try to scrape release from that message!"
                 }
                 try {
@@ -78,7 +89,8 @@ class ScraperExtension : Extension() {
             }
         }
 
-        publicSlashCommand {
+        @OptIn(kotlin.time.ExperimentalTime::class)
+        ephemeralSlashCommand {
             name = "shutdown"
             description = "Shuts the bot down."
             guild(Constants.Guilds.ASS)
@@ -90,10 +102,37 @@ class ScraperExtension : Extension() {
 
             action {
                 respond {
-                    content = "**Okay...** :cry:"
+                    content = "Are you sure????"
+                    components(Duration.seconds(30)) {
+                        publicButton {
+                            style = ButtonStyle.Success
+                            partialEmoji = DiscordPartialEmoji(name = "❌")
+                            label = "NO!!!"
+
+                            action {
+                                respond {
+                                    content = "I get to live another day!"
+                                }
+                                removeAll()
+                            }
+                        }
+
+                        publicButton {
+                            style = ButtonStyle.Danger
+                            partialEmoji = DiscordPartialEmoji(name = "✔️")
+                            label = "Yes..."
+
+                            action {
+                                respond {
+                                    content = "**okay...** :sob:"
+                                }
+                                removeAll()
+                                this@ephemeralSlashCommand.kord.shutdown()
+                                exitProcess(0)
+                            }
+                        }
+                    }
                 }
-                this@publicSlashCommand.kord.shutdown()
-                exitProcess(0)
             }
         }
 
