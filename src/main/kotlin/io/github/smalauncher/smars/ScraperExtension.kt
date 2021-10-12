@@ -125,7 +125,7 @@ class ScraperExtension : Extension() {
                     }
                 }
                 try {
-                    val uResult = uploader.upload(result.getOrThrow())
+                    val uResult = uploader.upload(release)
                     logChan.createMessage {
                         embed {
                             color = Colors.GREEN
@@ -143,6 +143,25 @@ class ScraperExtension : Extension() {
                         }
                     }
                 } catch (e: Exception) {
+                    logChan.createMessage {
+                        embed {
+                            color = Colors.RED
+                            title = "**BOO!** Failed to upload new release!!"
+                            field {
+                                name = "Reason"
+                                value = e.message ?: "<unknown>"
+                                inline = true
+                            }
+                            field {
+                                name = "Stack trace"
+                                value = e.stackTraceToCodeBlock()
+                            }
+                            footer {
+                                text = "Message: " + message.getJumpUrl()
+                            }
+                        }
+                    }
+                } catch (e: Throwable) {
                     logChan.createMessage {
                         embed {
                             color = Colors.RED
