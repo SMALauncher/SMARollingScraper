@@ -15,6 +15,7 @@ import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import kotlin.system.exitProcess
 
 class ScraperExtension : Extension() {
     override val name: String = "scraper"
@@ -74,6 +75,25 @@ class ScraperExtension : Extension() {
                                 "__**Stack trace:**__```\n${e.stackTraceToCodeBlock()}```"
                     }
                 }
+            }
+        }
+
+        publicSlashCommand {
+            name = "shutdown"
+            description = "Shuts the bot down."
+            guild(Constants.Guilds.ASS)
+
+            check {
+                failIf(event.interaction.user.id != Constants.Users.OWNER, "You're not the owner!")
+                failIf(event.interaction.channelId != Constants.Channels.CONFIG, "This isn't the config channel!")
+            }
+
+            action {
+                respond {
+                    content = "**Okay...** :cry:"
+                }
+                this@publicSlashCommand.kord.shutdown()
+                exitProcess(0)
             }
         }
 
