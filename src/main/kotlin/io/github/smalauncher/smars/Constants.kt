@@ -21,6 +21,13 @@ object Constants {
         }
     }
 
+    object Guilds {
+        /**
+         * ADudeCalledLeo's splendid server (AKA Ass)
+         */
+        val ASS = Snowflake(847428895641042944)
+    }
+
     object Channels {
         /**
          * #downloads-rolling in the Shang Mu Architect Discord.
@@ -28,12 +35,12 @@ object Constants {
         val ROLLING = Snowflake(836080736939409418)
 
         /**
-         * #smars-config in A.s.s.
+         * #smars-config in Leo's server.
          */
         val CONFIG = Snowflake(857240971837833226)
 
         /**
-         * #smars-log in A.s.s.
+         * #smars-log in Leo's server.
          */
         val LOG = Snowflake(857240987214544938)
     }

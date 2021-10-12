@@ -1,10 +1,8 @@
 package io.github.smalauncher.smars
 
-import com.kotlindiscord.kord.extensions.checks.types.CheckContext
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.message
 import com.kotlindiscord.kord.extensions.extensions.Extension
-import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.event
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
@@ -13,7 +11,6 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.GuildMessageChannel
-import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
@@ -27,6 +24,8 @@ class ScraperExtension : Extension() {
     private val uploader = ReleaseUploader(Constants.Env.APP_ID, Constants.Env.APP_KEY,
         Constants.Env.REPO_ORG, Constants.Env.REPO_NAME)
 
+    private lateinit var logChan: GuildMessageChannel
+
     private fun Throwable.stackTraceToCodeBlock(): String {
         return "```\n" + stackTraceToString() + "```"
     }
@@ -35,11 +34,6 @@ class ScraperExtension : Extension() {
         if (!this.startsWith("```\n") || !this.endsWith("```"))
             return this
         return this.substring(4..this.length - 4)
-    }
-
-    private fun CheckContext<ChatInputCommandInteractionCreateEvent>.configCheck(event: ChatInputCommandInteractionCreateEvent) {
-        failIf(event.interaction.user.id != Constants.Users.OWNER, "You're not the owner!")
-        failIf(event.interaction.channelId != Constants.Channels.CONFIG, "This isn't the config channel!")
     }
 
     override suspend fun setup() {
@@ -56,8 +50,12 @@ class ScraperExtension : Extension() {
         publicSlashCommand(::ScrapeArgs) {
             name = "scrape"
             description = "Scrapes a rolling release from a specific message."
+            guild(Constants.Guilds.ASS)
 
-            check { configCheck(event) }
+            check {
+                failIf(event.interaction.user.id != Constants.Users.OWNER, "You're not the owner!")
+                failIf(event.interaction.channelId != Constants.Channels.CONFIG, "This isn't the config channel!")
+            }
 
             action {
                 respond {
@@ -66,6 +64,9 @@ class ScraperExtension : Extension() {
                 onMessage(arguments.target, DetectionType.Manual)
             }
         }
+
+        logChan = bot.getKoin().get<Kord>().getChannelOf(Constants.Channels.LOG)
+            ?: throw RuntimeException("Can't find log channel")
     }
 
     override suspend fun unload() {
@@ -86,10 +87,6 @@ class ScraperExtension : Extension() {
             if (!attach.filename.startsWith("Shang_Mu_Architect_")
                 || !attach.filename.endsWith(".zip"))
                 continue
-
-            val logChan = bot.getKoin().get<Kord>().getChannelOf<GuildMessageChannel>(Constants.Channels.LOG)
-                ?: throw RuntimeException("Can't find log channel")
-
             logChan.createMessage {
                 embed {
                     color = Colors.Discord.GREYPLE
