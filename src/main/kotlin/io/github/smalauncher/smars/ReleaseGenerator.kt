@@ -31,6 +31,8 @@ class ReleaseGenerator(private val client: HttpClient) {
     }
 
     suspend fun generate(url: String, filename: String, changelog: String): Result<Release> {
+        val fixedChangelog = fixChangelogFormatting(changelog)
+
         val res: HttpResponse = client.get(url)
         val responseBody: ByteArray = res.receive()
 
@@ -75,7 +77,38 @@ class ReleaseGenerator(private val client: HttpClient) {
 
             val path = Files.createTempFile("smars_tmp_", filename)
             path.writeBytes(responseBody)
-            return@withContext Result.success(Release(version, changelog, path, filename, exeName, hash))
+            return@withContext Result.success(Release(version, fixedChangelog, path, filename, exeName, hash))
+        }
+    }
+
+    companion object {
+        fun fixChangelogFormatting(changelog: String): String {
+            val sb = StringBuilder()
+            val buf = StringBuilder()
+            for (line in changelog.lines()) {
+                var restIdx = 0
+                for (i in line.indices) {
+                    val c = line[i]
+                    if (c == ' ') {
+                        buf.append(' ')
+                        continue
+                    } else if (c == '-') {
+                        buf.append("- ")
+                        restIdx = i + 1
+                    }
+                    break
+                }
+                sb.append(buf.toString())
+                if (restIdx < line.length) {
+                    sb.append(line.substring(restIdx))
+                }
+                sb.appendLine()
+                buf.setLength(0)
+            }
+            if (sb.isNotEmpty()) {
+                sb.setLength(sb.length - 1);
+            }
+            return sb.toString()
         }
     }
 }

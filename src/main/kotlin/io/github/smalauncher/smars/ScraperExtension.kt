@@ -111,7 +111,10 @@ class ScraperExtension : Extension() {
     }
 
     class ScrapeArgs : Arguments() {
-        val target by message("target", description = "Message to scrape from")
+        val target by message {
+            name = "target"
+            description = "Message to scrape from"
+        }
     }
 
     private enum class DetectionType(val description: String) {
