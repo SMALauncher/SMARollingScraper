@@ -1,10 +1,10 @@
 name: Build & Publish (master)
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+# push:
+#   branches: [ master ]
+# pull_request:
+#   branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v1
         with:
-            java-version: 1.16
+            java-version: 1.17
       - name: Gradle (Build)
         run: sh gradlew build
       - name: Upload artifacts (Main JAR)

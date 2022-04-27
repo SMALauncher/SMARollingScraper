@@ -1,4 +1,4 @@
-FROM openjdk:16-jdk-slim
+FROM openjdk:17-jdk-slim
 
 COPY build/libs/SMARollingScraper-*-all.jar /usr/local/lib/SMARollingScraper.jar
 
