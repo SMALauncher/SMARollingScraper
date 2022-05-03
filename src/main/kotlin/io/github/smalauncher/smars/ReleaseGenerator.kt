@@ -86,6 +86,10 @@ class ReleaseGenerator(private val client: HttpClient) {
             val sb = StringBuilder()
             val buf = StringBuilder()
             for (line in changelog.lines()) {
+                if (line.startsWith("---")) {
+                    sb.appendLine(line);
+                    continue
+                }
                 var restIdx = 0
                 for (i in line.indices) {
                     val c = line[i]
