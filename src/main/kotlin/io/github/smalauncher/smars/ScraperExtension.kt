@@ -171,38 +171,25 @@ class ScraperExtension : Extension() {
                         }
                     }
                 } catch (e: Exception) {
+                    System.err.println("Error while uploading new release:")
+                    e.printStackTrace()
+
                     logChan.createMessage {
                         embed {
                             color = Colors.RED
                             title = "**BOO!** Failed to upload new release!!"
+
                             field {
                                 name = "Reason"
                                 value = "${e.javaClass.name}${e.messageOrEmpty()}"
                                 inline = true
                             }
+
                             field {
                                 name = "Stack trace"
                                 value = e.stackTraceToCodeBlock()
                             }
-                            footer {
-                                text = "Message: " + message.getJumpUrl()
-                            }
-                        }
-                    }
-                } catch (e: Throwable) {
-                    logChan.createMessage {
-                        embed {
-                            color = Colors.RED
-                            title = "**BOO!** Failed to upload new release!!"
-                            field {
-                                name = "Reason"
-                                value = "${e.javaClass.name}${e.messageOrEmpty()}"
-                                inline = true
-                            }
-                            field {
-                                name = "Stack trace"
-                                value = e.stackTraceToCodeBlock()
-                            }
+
                             footer {
                                 text = "Message: " + message.getJumpUrl()
                             }
@@ -210,20 +197,33 @@ class ScraperExtension : Extension() {
                     }
                 }
             } else {
+                val e = result.exceptionOrNull()
+                System.err.println("Error while generating new release:")
+                if (e == null) {
+                    System.err.println("<unknown>")
+                }
+                else {
+                    e.printStackTrace()
+                }
+
                 logChan.createMessage {
                     embed {
                         color = Colors.RED
                         title = "**ACK!** Failed to generate new release!"
+
                         field {
                             name = "Reason"
-                            val e = result.exceptionOrNull()
                             value = if (e == null) "<unknown>" else "${e.javaClass.name}${e.messageOrEmpty()}"
                             inline = true
                         }
-                        field {
-                            name = "Stack trace"
-                            value = result.exceptionOrNull()?.stackTraceToCodeBlock() ?: "<null?!>"
+
+                        if (e != null) {
+                            field {
+                                name = "Stack trace"
+                                value = e.stackTraceToCodeBlock()
+                            }
                         }
+
                         footer {
                             text = "Message:" + message.getJumpUrl()
                         }
