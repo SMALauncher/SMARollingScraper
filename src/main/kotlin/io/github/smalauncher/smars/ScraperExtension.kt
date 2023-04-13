@@ -171,8 +171,37 @@ class ScraperExtension : Extension() {
         }
 
         val changelog = if (changelogUrl != null) {
-            val res = client.get(changelogUrl)
-            res.bodyAsText(Charsets.UTF_8)
+            try {
+                val res = client.get(changelogUrl)
+                res.bodyAsText(Charsets.UTF_8)
+            } catch (e: Exception) {
+                System.err.println("Error while getting changelog:")
+                e.printStackTrace()
+
+                logChan.createMessage {
+                    embed {
+                        color = Colors.RED
+                        title = "**GAH!** Failed to get changelog!"
+
+                        field {
+                            name = "Reason"
+                            value = "${e.javaClass.name}${e.messageOrEmpty()}"
+                            inline = true
+                        }
+
+                        field {
+                            name = "Stack trace"
+                            value = e.stackTraceToCodeBlock()
+                        }
+
+                        footer {
+                            text = "Message: " + message.getJumpUrl()
+                        }
+                    }
+                }
+
+                return
+            }
         } else {
             message.content.stripCodeBlock()
         }
@@ -216,7 +245,7 @@ class ScraperExtension : Extension() {
                 logChan.createMessage {
                     embed {
                         color = Colors.RED
-                        title = "**BOO!** Failed to upload new release!!"
+                        title = "**BOO!** Failed to upload new release!"
 
                         field {
                             name = "Reason"
