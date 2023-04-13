@@ -14,22 +14,17 @@ version = "0.1.0"
 repositories {
     mavenCentral()
     maven("https://oss.sonatype.org/content/repositories/snapshots") // for Kord snapshots
-
-    maven {
-        name = "Kotlin Discord"
-        url = uri("https://maven.kotlindiscord.com/repository/maven-public/")
-    }
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
 
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.2-SNAPSHOT")
-    compileOnly("io.jsonwebtoken:jjwt-api:0.11.2")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.2")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.2")
-    implementation("org.kohsuke:github-api:1.306")
-    implementation("org.slf4j:slf4j-simple:1.7.36")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.6")
+    compileOnly("io.jsonwebtoken:jjwt-api:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+    implementation("org.kohsuke:github-api:1.314")
+    implementation("org.slf4j:slf4j-simple:2.0.5")
 }
 
 configurations.all {

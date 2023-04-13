@@ -34,7 +34,7 @@ class ReleaseGenerator(private val client: HttpClient) {
         val fixedChangelog = fixChangelogFormatting(changelog)
 
         val res: HttpResponse = client.get(url)
-        val responseBody: ByteArray = res.receive()
+        val responseBody = res.body<ByteArray>()
 
         val lastUnderscore = filename.lastIndexOf('_')
         val lastDot = filename.lastIndexOf('.')
