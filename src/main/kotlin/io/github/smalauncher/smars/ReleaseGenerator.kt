@@ -82,37 +82,12 @@ class ReleaseGenerator(private val client: HttpClient) {
     }
 
     companion object {
+        @JvmStatic
+        val LINE_REGEX = Regex("^(\\s*)-([^- ])", RegexOption.MULTILINE)
+
+        @JvmStatic
         fun fixChangelogFormatting(changelog: String): String {
-            val sb = StringBuilder()
-            val buf = StringBuilder()
-            for (line in changelog.lines()) {
-                if (line.startsWith("---")) {
-                    sb.appendLine(line);
-                    continue
-                }
-                var restIdx = 0
-                for (i in line.indices) {
-                    val c = line[i]
-                    if (c == ' ') {
-                        buf.append(' ')
-                        continue
-                    } else if (c == '-') {
-                        buf.append("- ")
-                        restIdx = i + 1
-                    }
-                    break
-                }
-                sb.append(buf.toString())
-                if (restIdx < line.length) {
-                    sb.append(line.substring(restIdx))
-                }
-                sb.appendLine()
-                buf.setLength(0)
-            }
-            if (sb.isNotEmpty()) {
-                sb.setLength(sb.length - 1);
-            }
-            return sb.toString()
+            return LINE_REGEX.replace(changelog) { "${it.groupValues[1]}- ${it.groupValues[2]}" }
         }
     }
 }
