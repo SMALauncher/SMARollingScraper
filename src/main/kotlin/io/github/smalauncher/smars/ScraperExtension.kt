@@ -1,6 +1,7 @@
 package io.github.smalauncher.smars
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingBoolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.message
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
@@ -17,7 +18,10 @@ import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
+import io.ktor.utils.io.jvm.javaio.*
+import java.io.ByteArrayInputStream
 import kotlin.system.exitProcess
 
 class ScraperExtension : Extension() {
@@ -61,7 +65,7 @@ class ScraperExtension : Extension() {
             }
 
             action {
-                onMessage(event.message, DetectionType.Automatic)
+                performScrape(event.message, ScrapeMode.Automatic)
             }
         }
 
@@ -79,7 +83,7 @@ class ScraperExtension : Extension() {
                 respond {
                     content = "Gotcha, will now try to scrape release from that message!"
                 }
-                onMessage(arguments.target, DetectionType.Manual)
+                performScrape(arguments.target, if (arguments.dry) ScrapeMode.ManualDry else ScrapeMode.Manual)
             }
         }
 
@@ -117,14 +121,21 @@ class ScraperExtension : Extension() {
             name = "target"
             description = "Message to scrape from"
         }
+
+        val dry by defaultingBoolean {
+            name = "dry"
+            description = "Whether to perform a dry run (without uploading) or not"
+            defaultValue = false
+        }
     }
 
-    private enum class DetectionType(val description: String) {
+    private enum class ScrapeMode(val description: String) {
         Manual("The owner manually told the bot to scrape this message!"),
+        ManualDry("The owner manually told the bot to dry-run this message!"),
         Automatic("The bot detected a new message in the rolling releases channel!")
     }
 
-    private suspend fun onMessage(message: Message, detectionType: DetectionType) {
+    private suspend fun performScrape(message: Message, mode: ScrapeMode) {
         var gameUrl: String? = null
         var gameFilename: String? = null
         var changelogUrl: String? = null
@@ -141,12 +152,12 @@ class ScraperExtension : Extension() {
         }
 
         if (gameUrl == null || gameFilename == null) {
-            if (detectionType == DetectionType.Manual) {
+            if (mode != ScrapeMode.Automatic) {
                 logChan.createMessage {
                     embed {
                         color = Colors.Discord.RED
                         title = "**BAH!** No game ZIP in this message!"
-                        description = detectionType.description
+                        description = mode.description
                         field {
                             name = "Message Jump URL"
                             value = message.getJumpUrl()
@@ -162,7 +173,7 @@ class ScraperExtension : Extension() {
             embed {
                 color = Colors.Discord.GREYPLE
                 title = "**HUH!** New release detected!"
-                description = detectionType.description
+                description = mode.description
                 field {
                     name = "Message Jump URL"
                     value = message.getJumpUrl()
@@ -220,50 +231,69 @@ class ScraperExtension : Extension() {
                 }
             }
 
-            try {
-                val uResult = uploader.upload(release)
+            if (mode == ScrapeMode.ManualDry) {
                 logChan.createMessage {
                     embed {
-                        color = Colors.GREEN
-                        title = "**YAY!** New release uploaded!"
-                        description = "Successfully uploaded v${release.version}! Look at it [here](${uResult.url})!"
-                        if (uResult.replaced) {
-                            field {
-                                name = "Old version replaced"
-                                value = "This version has already been uploaded! Therefore, the old release was replaced."
-                            }
-                        }
+                        color = Colors.BLUE
+                        title = "**WOO!** New release generated!"
+                        description = "Version is v${release.version}, changelog is attached."
                         footer {
                             text = "Message: " + message.getJumpUrl()
                         }
                     }
+
+                    addFile("changelog.txt", ChannelProvider { ByteArrayInputStream(release.changelog.toByteArray()).toByteReadChannel() })
                 }
-            } catch (e: Exception) {
-                System.err.println("Error while uploading new release:")
-                e.printStackTrace()
-
-                logChan.createMessage {
-                    embed {
-                        color = Colors.RED
-                        title = "**BOO!** Failed to upload new release!"
-
-                        field {
-                            name = "Reason"
-                            value = "${e.javaClass.name}${e.messageOrEmpty()}"
-                            inline = true
+            } else {
+                try {
+                    val uResult = uploader.upload(release)
+                    logChan.createMessage {
+                        embed {
+                            color = Colors.GREEN
+                            title = "**YAY!** New release uploaded!"
+                            description =
+                                "Successfully uploaded v${release.version}! Look at it [here](${uResult.url})!"
+                            if (uResult.replaced) {
+                                field {
+                                    name = "Old version replaced"
+                                    value =
+                                        "This version has already been uploaded! Therefore, the old release was replaced."
+                                }
+                            }
+                            footer {
+                                text = "Message: " + message.getJumpUrl()
+                            }
                         }
+                    }
+                } catch (e: Exception) {
+                    System.err.println("Error while uploading new release:")
+                    e.printStackTrace()
 
-                        field {
-                            name = "Stack trace"
-                            value = e.stackTraceToCodeBlock()
-                        }
+                    logChan.createMessage {
+                        embed {
+                            color = Colors.RED
+                            title = "**BOO!** Failed to upload new release!"
 
-                        footer {
-                            text = "Message: " + message.getJumpUrl()
+                            field {
+                                name = "Reason"
+                                value = "${e.javaClass.name}${e.messageOrEmpty()}"
+                                inline = true
+                            }
+
+                            field {
+                                name = "Stack trace"
+                                value = e.stackTraceToCodeBlock()
+                            }
+
+                            footer {
+                                text = "Message: " + message.getJumpUrl()
+                            }
                         }
                     }
                 }
             }
+
+            release.delete()
         } else {
             val e = result.exceptionOrNull()
             System.err.println("Error while generating new release:")

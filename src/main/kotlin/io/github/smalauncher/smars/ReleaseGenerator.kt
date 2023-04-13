@@ -86,8 +86,7 @@ class ReleaseGenerator(private val client: HttpClient) {
         val LINE_REGEX = Regex("^(\\s*)-([^- ])", RegexOption.MULTILINE)
 
         @JvmStatic
-        fun fixChangelogFormatting(changelog: String): String {
-            return LINE_REGEX.replace(changelog) { "${it.groupValues[1]}- ${it.groupValues[2]}" }
-        }
+        fun fixChangelogFormatting(changelog: String): String =
+            LINE_REGEX.replace(changelog) { "${it.groupValues[1]}- ${it.groupValues[2]}" }
     }
 }
