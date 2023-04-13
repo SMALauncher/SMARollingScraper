@@ -16,6 +16,8 @@ import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import kotlin.system.exitProcess
 
 class ScraperExtension : Extension() {
@@ -123,115 +125,149 @@ class ScraperExtension : Extension() {
     }
 
     private suspend fun onMessage(message: Message, detectionType: DetectionType) {
+        var gameUrl: String? = null
+        var gameFilename: String? = null
+        var changelogUrl: String? = null
+
         for (attach in message.attachments) {
-            if (!attach.filename.startsWith("Shang_Mu_Architect_")
-                || !attach.filename.endsWith(".zip"))
-                continue
-            logChan.createMessage {
-                embed {
-                    color = Colors.Discord.GREYPLE
-                    title = "**HUH!** New release detected!"
-                    description = detectionType.description
-                    field {
-                        name = "Message Jump URL"
-                        value = message.getJumpUrl()
+            if (attach.filename.startsWith("Shang_Mu_Architect_")
+                && attach.filename.endsWith(".zip", true)) {
+                gameUrl = attach.url
+                gameFilename = attach.filename
+            } else if (attach.filename.startsWith("changelog_", true)
+                && attach.filename.endsWith(".txt", true)) {
+                changelogUrl = attach.url
+            }
+        }
+
+        if (gameUrl == null || gameFilename == null) {
+            if (detectionType == DetectionType.Manual) {
+                logChan.createMessage {
+                    embed {
+                        color = Colors.Discord.RED
+                        title = "**BAH!** No game ZIP in this message!"
+                        description = detectionType.description
+                        field {
+                            name = "Message Jump URL"
+                            value = message.getJumpUrl()
+                        }
                     }
                 }
             }
 
-            val result = generator.generate(attach.url, attach.filename, message.content.stripCodeBlock())
-            if (result.isSuccess) {
-                val release = result.getOrThrow()
+            return
+        }
+
+        logChan.createMessage {
+            embed {
+                color = Colors.Discord.GREYPLE
+                title = "**HUH!** New release detected!"
+                description = detectionType.description
+                field {
+                    name = "Message Jump URL"
+                    value = message.getJumpUrl()
+                }
+            }
+        }
+
+        val changelog = if (changelogUrl != null) {
+            val res = client.get(changelogUrl)
+            res.bodyAsText(Charsets.UTF_8)
+        } else {
+            message.content.stripCodeBlock()
+        }
+
+        val result = generator.generate(gameUrl, gameFilename, changelog)
+        if (result.isSuccess) {
+            val release = result.getOrThrow()
+            logChan.createMessage {
+                embed {
+                    color = Colors.YELLOW
+                    title = "**HMM!** New release generated!"
+                    description = "Now uploading v${release.version}..."
+                    footer {
+                        text = "Message: " + message.getJumpUrl()
+                    }
+                }
+            }
+
+            try {
+                val uResult = uploader.upload(release)
                 logChan.createMessage {
                     embed {
-                        color = Colors.YELLOW
-                        title = "**HMM!** New release generated!"
-                        description = "Now uploading v${release.version}..."
+                        color = Colors.GREEN
+                        title = "**YAY!** New release uploaded!"
+                        description = "Successfully uploaded v${release.version}! Look at it [here](${uResult.url})!"
+                        if (uResult.replaced) {
+                            field {
+                                name = "Old version replaced"
+                                value = "This version has already been uploaded! Therefore, the old release was replaced."
+                            }
+                        }
                         footer {
                             text = "Message: " + message.getJumpUrl()
                         }
                     }
                 }
-                try {
-                    val uResult = uploader.upload(release)
-                    logChan.createMessage {
-                        embed {
-                            color = Colors.GREEN
-                            title = "**YAY!** New release uploaded!"
-                            description = "Successfully uploaded v${release.version}! Look at it [here](${uResult.url})!"
-                            if (uResult.replaced) {
-                                field {
-                                    name = "Old version replaced"
-                                    value = "This version has already been uploaded! Therefore, the old release was replaced."
-                                }
-                            }
-                            footer {
-                                text = "Message: " + message.getJumpUrl()
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    System.err.println("Error while uploading new release:")
-                    e.printStackTrace()
-
-                    logChan.createMessage {
-                        embed {
-                            color = Colors.RED
-                            title = "**BOO!** Failed to upload new release!!"
-
-                            field {
-                                name = "Reason"
-                                value = "${e.javaClass.name}${e.messageOrEmpty()}"
-                                inline = true
-                            }
-
-                            field {
-                                name = "Stack trace"
-                                value = e.stackTraceToCodeBlock()
-                            }
-
-                            footer {
-                                text = "Message: " + message.getJumpUrl()
-                            }
-                        }
-                    }
-                }
-            } else {
-                val e = result.exceptionOrNull()
-                System.err.println("Error while generating new release:")
-                if (e == null) {
-                    System.err.println("<unknown>")
-                }
-                else {
-                    e.printStackTrace()
-                }
+            } catch (e: Exception) {
+                System.err.println("Error while uploading new release:")
+                e.printStackTrace()
 
                 logChan.createMessage {
                     embed {
                         color = Colors.RED
-                        title = "**ACK!** Failed to generate new release!"
+                        title = "**BOO!** Failed to upload new release!!"
 
                         field {
                             name = "Reason"
-                            value = if (e == null) "<unknown>" else "${e.javaClass.name}${e.messageOrEmpty()}"
+                            value = "${e.javaClass.name}${e.messageOrEmpty()}"
                             inline = true
                         }
 
-                        if (e != null) {
-                            field {
-                                name = "Stack trace"
-                                value = e.stackTraceToCodeBlock()
-                            }
+                        field {
+                            name = "Stack trace"
+                            value = e.stackTraceToCodeBlock()
                         }
 
                         footer {
-                            text = "Message:" + message.getJumpUrl()
+                            text = "Message: " + message.getJumpUrl()
                         }
                     }
                 }
             }
+        } else {
+            val e = result.exceptionOrNull()
+            System.err.println("Error while generating new release:")
+            if (e == null) {
+                System.err.println("<unknown>")
+            }
+            else {
+                e.printStackTrace()
+            }
 
-            break
+            logChan.createMessage {
+                embed {
+                    color = Colors.RED
+                    title = "**ACK!** Failed to generate new release!"
+
+                    field {
+                        name = "Reason"
+                        value = if (e == null) "<unknown>" else "${e.javaClass.name}${e.messageOrEmpty()}"
+                        inline = true
+                    }
+
+                    if (e != null) {
+                        field {
+                            name = "Stack trace"
+                            value = e.stackTraceToCodeBlock()
+                        }
+                    }
+
+                    footer {
+                        text = "Message:" + message.getJumpUrl()
+                    }
+                }
+            }
         }
     }
 }
