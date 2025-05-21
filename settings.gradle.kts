@@ -1,14 +1,11 @@
 pluginManagement {
-    repositories {
-        google()
-        gradlePluginPortal()
-    }
+	repositories {
+		gradlePluginPortal()
+		mavenCentral()
 
-    plugins {
-        kotlin("jvm") version "1.8.0"
-
-        id("com.github.johnrengelman.shadow") version "7.1.2"
-    }
+		maven("https://snapshots-repo.kordex.dev")
+		maven("https://releases-repo.kordex.dev")
+	}
 }
 
 rootProject.name = "SMARollingScraper"

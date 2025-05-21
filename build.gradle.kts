@@ -1,52 +1,128 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import dev.kordex.gradle.plugins.docker.file.*
+import dev.kordex.gradle.plugins.kordex.DataCollection
 
 plugins {
-    application
+	distribution
 
-    kotlin("jvm")
+	alias(libs.plugins.kotlin.jvm)
+	alias(libs.plugins.kotlin.serialization)
 
-    id("com.github.johnrengelman.shadow")
+	alias(libs.plugins.detekt)
+
+	alias(libs.plugins.kordex.docker)
+	alias(libs.plugins.kordex.plugin)
 }
 
-group = "io.github.smalauncher"
-version = "0.2.0"
-
-repositories {
-    mavenCentral()
-    maven("https://oss.sonatype.org/content/repositories/snapshots") // for Kord snapshots
-}
+group = "io.github.leo40git"
+version = "1.0-SNAPSHOT"
 
 dependencies {
-    implementation(kotlin("stdlib"))
+	detektPlugins(libs.detekt)
 
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.6")
-    compileOnly("io.jsonwebtoken:jjwt-api:0.11.5")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
-    implementation("org.kohsuke:github-api:1.314")
-    implementation("org.slf4j:slf4j-simple:2.0.5")
+	implementation(libs.kotlin.stdlib)
+	implementation(libs.kx.ser)
+
+	// Logging dependencies
+	implementation(libs.groovy)
+	implementation(libs.jansi)
+	implementation(libs.logback)
+	implementation(libs.logback.groovy)
+	implementation(libs.logging)
 }
 
-configurations.all {
-    resolutionStrategy.cacheDynamicVersionsFor(10, "seconds")
-    resolutionStrategy.cacheChangingModulesFor(10, "seconds")
+// Configure distributions plugin
+distributions {
+	main {
+		distributionBaseName = project.name
+
+		contents {
+			// Copy the LICENSE file into the distribution
+			from("LICENSE")
+
+			// Exclude src/main/dist/README.md
+			exclude("README.md")
+		}
+	}
 }
 
-application {
-    @Suppress("DEPRECATION") // Shadow plugin requires this
-    mainClassName = "io.github.smalauncher.smars.MainKt"
+kordEx {
+	// https://github.com/gradle/gradle/issues/31383
+	kordExVersion = libs.versions.kordex.asProvider()
+
+	bot {
+		// See https://docs.kordex.dev/data-collection.html
+		dataCollection(DataCollection.Standard)
+
+		mainClass = "io.github.leo40git.smars.AppKt"
+	}
+
+	i18n {
+		classPackage = "io.github.leo40git.smars.i18n"
+		translationBundle = "smars.strings"
+	}
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+detekt {
+	buildUponDefaultConfig = true
 
-    kotlinOptions.freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+	config.from(rootProject.files("detekt.yml"))
 }
 
-tasks.jar {
-    manifest {
-        attributes(
-            "Main-Class" to "io.github.smalauncher.smars.MainKt"
-        )
-    }
+// Automatically generate a Dockerfile. Set `generateOnBuild` to `false` if you'd prefer to manually run the
+// `createDockerfile` task instead of having it run whenever you build.
+docker {
+	// Create the Dockerfile in the root folder.
+	file(rootProject.file("Dockerfile"))
+
+	commands {
+		// Each function (aside from comment/emptyLine) corresponds to a Dockerfile instruction.
+		// See: https://docs.docker.com/reference/dockerfile/
+
+		from("openjdk:21-jdk-slim")
+
+		emptyLine()
+
+		comment("Create required directories")
+		runShell("mkdir -p /bot/plugins")
+		runShell("mkdir -p /bot/data")
+		runShell("mkdir -p /dist/out")
+
+		emptyLine()
+
+		// Add volumes for locations that you need to persist. This is important!
+		comment("Declare required volumes")
+		volume("/bot/data")  // Storage for data files
+		volume("/bot/plugins")  // Plugin ZIP/JAR location
+
+		emptyLine()
+
+		comment("Copy the distribution files into the container")
+		copy("build/distributions/${project.name}-${project.version}.tar", "/dist")
+
+		emptyLine()
+
+		comment("Extract the distribution files, and prepare them for use")
+		runShell("tar -xf /dist/${project.name}-${project.version}.tar -C /dist/out")
+
+		if (file("src/main/dist/plugins").isDirectory) {
+			runShell("mv /dist/out/${project.name}-${project.version}/plugins/* /bot/plugins")
+		}
+
+		runShell("chmod +x /dist/out/${project.name}-${project.version}/bin/$name")
+
+		emptyLine()
+
+		comment("Clean up unnecessary files")
+		runShell("rm /dist/${project.name}-${project.version}.tar")
+
+		emptyLine()
+
+		comment("Set the correct working directory")
+		workdir("/bot")
+
+		emptyLine()
+
+		comment("Run the distribution start script")
+		entryPointExec("/dist/out/${project.name}-${project.version}/bin/$name")
+	}
 }
