@@ -8,5 +8,5 @@ pluginManagement {
 	}
 }
 
-rootProject.name = "SMARollingScraper"
+rootProject.name = "sma-rolling-scraper"
 

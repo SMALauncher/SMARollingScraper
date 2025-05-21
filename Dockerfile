@@ -13,17 +13,17 @@ VOLUME [ "/bot/data" ]
 VOLUME [ "/bot/plugins" ]
 
 # Copy the distribution files into the container
-COPY [ "build/distributions/SMARollingScraper-1.0-SNAPSHOT.tar", "/dist" ]
+COPY [ "build/distributions/sma-rolling-scraper-1.0-SNAPSHOT.tar", "/dist" ]
 
 # Extract the distribution files, and prepare them for use
-RUN tar -xf /dist/SMARollingScraper-1.0-SNAPSHOT.tar -C /dist/out
-RUN chmod +x /dist/out/SMARollingScraper-1.0-SNAPSHOT/bin/SMARollingScraper
+RUN tar -xf /dist/sma-rolling-scraper-1.0-SNAPSHOT.tar -C /dist/out
+RUN chmod +x /dist/out/sma-rolling-scraper-1.0-SNAPSHOT/bin/sma-rolling-scraper
 
 # Clean up unnecessary files
-RUN rm /dist/SMARollingScraper-1.0-SNAPSHOT.tar
+RUN rm /dist/sma-rolling-scraper-1.0-SNAPSHOT.tar
 
 # Set the correct working directory
 WORKDIR /bot
 
 # Run the distribution start script
-ENTRYPOINT [ "/dist/out/SMARollingScraper-1.0-SNAPSHOT/bin/SMARollingScraper" ]
+ENTRYPOINT [ "/dist/out/sma-rolling-scraper-1.0-SNAPSHOT/bin/sma-rolling-scraper" ]
