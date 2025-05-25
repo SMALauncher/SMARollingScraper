@@ -1,4 +1,4 @@
-@file:Suppress("MagicNumber")
+@file:Suppress("MagicNumber", "UnderscoresInNumericLiterals")
 
 package io.github.leo40git.smars
 
@@ -14,9 +14,9 @@ object Constants {
 
 	val GH_APP_KEY = env("GH_APP_KEY")
 
-	val TEST_SERVER_ID = Snowflake(847_428_895_641_042_944)
+	val TEST_SERVER_ID = Snowflake(847428895641042944)
 
-	val SCRAPE_CHANNEL_ID = Snowflake(836_080_736_939_409_418)
+	val SCRAPE_CHANNEL_ID = Snowflake(836080736939409418)
 
-	val LOG_CHANNEL_ID = Snowflake(857_240_987_214_544_938)
+	val LOG_CHANNEL_ID = Snowflake(857240987214544938)
 }

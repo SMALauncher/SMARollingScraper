@@ -7,6 +7,9 @@ import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
+import dev.kordex.core.DISCORD_BLURPLE
+import dev.kordex.core.DISCORD_RED
+import dev.kordex.core.DISCORD_YELLOW
 import dev.kordex.core.checks.isBotOwner
 import dev.kordex.core.commands.Arguments
 import dev.kordex.core.commands.converters.impl.boolean
@@ -18,7 +21,6 @@ import dev.kordex.core.i18n.types.Key
 import dev.kordex.core.i18n.withContext
 import dev.kordex.core.types.TranslatableContext
 import dev.kordex.core.utils.getJumpUrl
-import io.github.leo40git.smars.Colors
 import io.github.leo40git.smars.Constants
 import io.github.leo40git.smars.i18n.Translations
 
@@ -235,8 +237,8 @@ class ScraperExtension : Extension() {
 	}
 
 	private enum class LogLevel(val title: Key, val color: Color) {
-		Info(Translations.Log.Title.info, Colors.Discord.BLURPLE),
-		Warn(Translations.Log.Title.warn, Colors.YELLOW),
-		Error(Translations.Log.Title.error, Colors.RED)
+		Info(Translations.Log.Title.info, DISCORD_BLURPLE),
+		Warn(Translations.Log.Title.warn, DISCORD_YELLOW),
+		Error(Translations.Log.Title.error, DISCORD_RED)
 	}
 }
