@@ -1,10 +1,12 @@
 package io.github.leo40git.smars.extensions
 
 import dev.kord.common.Color
+import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.entity.Attachment
 import dev.kord.core.entity.Message
 import dev.kord.core.entity.channel.GuildMessageChannel
+import dev.kord.core.entity.channel.MessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kordex.core.DISCORD_BLURPLE
@@ -21,21 +23,25 @@ import dev.kordex.core.i18n.types.Key
 import dev.kordex.core.i18n.withContext
 import dev.kordex.core.types.TranslatableContext
 import dev.kordex.core.utils.getJumpUrl
-import io.github.leo40git.smars.Constants
+import io.github.leo40git.smars.LOG_CHANNEL_ID
+import io.github.leo40git.smars.SCRAPE_CHANNEL_ID
+import io.github.leo40git.smars.TEST_SERVER_ID
 import io.github.leo40git.smars.i18n.Translations
+import io.github.leo40git.smars.releaser.ChannelReleaseLog
+import io.github.leo40git.smars.releaser.ReleaseGenerator
 
 class ScraperExtension : Extension() {
 	override val name = "scraper"
 
-	private lateinit var logChannel: GuildMessageChannel
+	private lateinit var logChannel: MessageChannelBehavior
 
 	override suspend fun setup() {
-		logChannel = kord.getChannelOf<GuildMessageChannel>(Constants.LOG_CHANNEL_ID)
-			?: error("Can't find log channel with ID '${Constants.LOG_CHANNEL_ID}.")
+		logChannel = kord.getChannelOf<MessageChannel>(LOG_CHANNEL_ID)
+			?: error("Can't find log channel with ID '${LOG_CHANNEL_ID}.")
 
 		event<MessageCreateEvent> {
 			check {
-				failIf { event.message.channelId != Constants.SCRAPE_CHANNEL_ID }
+				failIf { event.message.channelId != SCRAPE_CHANNEL_ID }
 			}
 
 			action {
@@ -46,7 +52,7 @@ class ScraperExtension : Extension() {
 		publicSlashCommand(::ScrapeArgs) {
 			name = Translations.Commands.Scrape.name
 			description = Translations.Commands.Scrape.description
-			guild(Constants.TEST_SERVER_ID)
+			guild(TEST_SERVER_ID)
 
 			check {
 				isBotOwner()
@@ -83,162 +89,12 @@ class ScraperExtension : Extension() {
 		target: Message,
 		dryRun: Boolean = false
 	) {
-		val archiveAttachments = mutableMapOf<Platform, Attachment>()
-		var changelogAttachment: Attachment? = null
-
-		for (attachment in target.attachments) {
-			if (attachment.filename.endsWith(
-					".zip",
-					true
-				) &&
-				attachment.filename.startsWith(
-					"Shang_Mu_Architect_",
-					true
-				)
-			) {
-				if (archiveAttachments.put(Platform.Windows, attachment) != null) {
-					createLogEmbed(
-						context,
-						target,
-						LogLevel.Error,
-						Translations.Log.Error.multipleArchives,
-						"platform" to Platform.Windows.displayName
-					)
-					return
-				}
-
-				continue
-			}
-
-			if (attachment.filename.endsWith(
-					"_i386.tar.gz",
-					true
-				) &&
-				attachment.filename.startsWith(
-					"shang-mu-architect_",
-					true
-				)
-			) {
-				if (archiveAttachments.put(Platform.Linux, attachment) != null) {
-					createLogEmbed(
-						context,
-						target,
-						LogLevel.Error,
-						Translations.Log.Error.multipleArchives,
-						"platform" to Platform.Linux.displayName
-					)
-					return
-				}
-
-				continue
-			}
-
-			if (
-				attachment.filename.endsWith(
-					".txt",
-					true
-				) &&
-				attachment.filename.startsWith(
-					"changelog_",
-					true
-				)
-			) {
-				changelogAttachment = attachment
-				continue
-			}
-		}
-
-		if (archiveAttachments.isEmpty()) {
-			createLogEmbed(
+		ReleaseGenerator.generateFrom(
+			ChannelReleaseLog(
 				context,
-				target,
-				LogLevel.Error,
-				Translations.Log.Error.noArchives
-			)
-			return
-		} else {
-			val archiveListBuilder = StringBuilder(
-				Translations.Log.Info.ArchiveList.header
-					.withContext(context)
-					.translate()
-			)
-			for (entry in archiveAttachments) {
-				archiveListBuilder
-					.appendLine()
-					.append(
-						Translations.Log.Info.ArchiveList.item
-							.withContext(context)
-							.translateNamed(
-								"platform" to entry.key.displayName,
-								"filename" to entry.value.filename
-							)
-					)
-			}
-
-			createLogEmbed(
-				context,
-				target,
-				LogLevel.Info) {
-				description = archiveListBuilder.toString()
-			}
-		}
-
-		TODO("Release generation not yet implemented")
-	}
-
-	private enum class Platform(val displayName: Key) {
-		Windows(Translations.Platform.windows),
-		Linux(Translations.Platform.linux);
-
-		suspend fun translateDisplayName(context: TranslatableContext): String {
-			return displayName
-				.withContext(context)
-				.translate()
-		}
-	}
-
-	private suspend inline fun createLogEmbed(
-		context: TranslatableContext,
-		target: Message,
-		level: LogLevel,
-		block: EmbedBuilder.() -> Unit
-	) {
-		logChannel.createEmbed {
-			color = level.color
-			title = level.title
-				.withContext(context)
-				.translate()
-
-			field {
-				name = Translations.Log.footerMessageUrl
-					.withContext(context)
-					.translate()
-				value = target.getJumpUrl()
-			}
-
-			apply(block)
-		}
-	}
-
-	private suspend inline fun createLogEmbed(
-		context: TranslatableContext,
-		target: Message,
-		level: LogLevel,
-		message: Key,
-		vararg messageReplacements: Pair<String, Any?>
-	) {
-		val messageString = message
-			.withContext(context)
-			.translateNamed(messageReplacements.toMap())
-
-		createLogEmbed(context, target, level) {
-			description = messageString
-		}
-	}
-
-	private enum class LogLevel(val title: Key, val color: Color) {
-		Info(Translations.Log.Title.info, DISCORD_BLURPLE),
-		Warn(Translations.Log.Title.warn, DISCORD_YELLOW),
-		Error(Translations.Log.Title.error, DISCORD_RED)
+				logChannel
+			),
+			target
+		)
 	}
 }
