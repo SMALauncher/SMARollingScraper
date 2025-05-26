@@ -1,17 +1,9 @@
 package io.github.leo40git.smars.extensions
 
-import dev.kord.common.Color
 import dev.kord.core.behavior.channel.MessageChannelBehavior
-import dev.kord.core.behavior.channel.createEmbed
-import dev.kord.core.entity.Attachment
 import dev.kord.core.entity.Message
-import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.entity.channel.MessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kordex.core.DISCORD_BLURPLE
-import dev.kordex.core.DISCORD_RED
-import dev.kordex.core.DISCORD_YELLOW
 import dev.kordex.core.checks.isBotOwner
 import dev.kordex.core.commands.Arguments
 import dev.kordex.core.commands.converters.impl.boolean
@@ -19,23 +11,26 @@ import dev.kordex.core.commands.converters.impl.message
 import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.event
 import dev.kordex.core.extensions.publicSlashCommand
-import dev.kordex.core.i18n.types.Key
 import dev.kordex.core.i18n.withContext
 import dev.kordex.core.types.TranslatableContext
-import dev.kordex.core.utils.getJumpUrl
 import io.github.leo40git.smars.LOG_CHANNEL_ID
 import io.github.leo40git.smars.SCRAPE_CHANNEL_ID
 import io.github.leo40git.smars.TEST_SERVER_ID
 import io.github.leo40git.smars.i18n.Translations
 import io.github.leo40git.smars.releaser.ChannelReleaseLog
 import io.github.leo40git.smars.releaser.ReleaseGenerator
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 
 class ScraperExtension : Extension() {
 	override val name = "scraper"
 
+	private val client = HttpClient(OkHttp)
 	private lateinit var logChannel: MessageChannelBehavior
 
 	override suspend fun setup() {
+		kord.rest
+
 		logChannel = kord.getChannelOf<MessageChannel>(LOG_CHANNEL_ID)
 			?: error("Can't find log channel with ID '${LOG_CHANNEL_ID}.")
 
@@ -68,8 +63,10 @@ class ScraperExtension : Extension() {
 				doScrape(this@action, arguments.target, arguments.dryRun)
 			}
 		}
+	}
 
-
+	override suspend fun unload() {
+		client.close()
 	}
 
 	private class ScrapeArgs : Arguments() {
@@ -86,15 +83,30 @@ class ScraperExtension : Extension() {
 
 	private suspend fun doScrape(
 		context: TranslatableContext,
-		target: Message,
+		message: Message,
 		dryRun: Boolean = false
 	) {
-		ReleaseGenerator.generateFrom(
-			ChannelReleaseLog(
-				context,
-				logChannel
-			),
-			target
+		val log = ChannelReleaseLog(
+			context,
+			logChannel
 		)
+
+		try {
+			val release = ReleaseGenerator.generate(
+				client,
+				message,
+				log
+			)
+
+			if (release == null)
+				return
+
+			// TODO
+		} catch (e: Exception) {
+			log.logErrorUncaughtException(
+				message,
+				e
+			)
+		}
 	}
 }

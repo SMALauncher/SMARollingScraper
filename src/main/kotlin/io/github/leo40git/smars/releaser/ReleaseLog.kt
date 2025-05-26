@@ -4,10 +4,20 @@ import dev.kord.core.entity.Attachment
 import dev.kord.core.entity.Message
 
 interface ReleaseLog {
-	suspend fun logErrorNoArchives(target: Message)
+	suspend fun logErrorNoArchives(message: Message)
 
 	suspend fun logInfoArchiveList(
-		target: Message,
-		archiveList: Map<TargetPlatform, List<Attachment>>
+		message: Message,
+		archives: Map<TargetPlatform, List<Attachment>>
+	)
+
+	suspend fun logErrorFetchChangelogException(
+		message: Message,
+		exception: Exception
+	)
+
+	suspend fun logErrorUncaughtException(
+		message: Message,
+		exception: Exception
 	)
 }
