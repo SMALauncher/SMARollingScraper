@@ -443,10 +443,15 @@ importsAcceptList = [
 	'ch.qos.logback.classic.boolex.IEvaluator',
 	'ch.qos.logback.classic.filter.ThresholdFilter',
 	'ch.qos.logback.classic.filter.LevelFilter',
+	'java.lang.Object.toBoolean',
 	'java.lang.System',
 	'java.lang.System.getenv',
 	'java.lang.System.getProperty',
 	'java.lang.System.getenv',
 	'java.util.Map.getOrDefault',
+	'java.util.List',
+	'java.util.List.contains',
 	'dev.kordex.core.utils._EnvironmentKt.envOrNull',
 ]
+
+staticImportsAcceptList = importsAcceptList

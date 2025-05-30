@@ -1,12 +1,14 @@
 import ch.qos.logback.core.joran.spi.ConsoleTarget
 import ch.qos.logback.core.ConsoleAppender
 
-def environment = System.getenv("ENVIRONMENT") ?: "production"
-
 def defaultLevel = INFO
 def defaultTarget = ConsoleTarget.SystemErr
 
-if (environment == "dev") {
+def DEV_MODE = System.getProperty("devMode")?.toBoolean() ||
+	System.getenv("DEV_MODE") != null ||
+	["dev", "development"].contains(System.getenv("ENVIRONMENT"))
+
+if (DEV_MODE) {
 	defaultLevel = DEBUG
 	defaultTarget = ConsoleTarget.SystemOut
 
@@ -17,8 +19,6 @@ if (environment == "dev") {
 appender("CONSOLE", ConsoleAppender) {
 	encoder(PatternLayoutEncoder) {
 		pattern = "%boldGreen(%d{yyyy-MM-dd}) %boldYellow(%d{HH:mm:ss}) %gray(|) %highlight(%5level) %gray(|) %boldMagenta(%40.40logger{40}) %gray(|) %msg%n"
-
-		withJansi = true
 	}
 
 	target = defaultTarget

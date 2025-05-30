@@ -11,6 +11,7 @@ plugins {
 
 	alias(libs.plugins.kordex.docker)
 	alias(libs.plugins.kordex.plugin)
+	alias(libs.plugins.ksp.plugin)
 }
 
 group = "io.github.leo40git"
