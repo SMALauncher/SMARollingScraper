@@ -12,12 +12,12 @@ import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.event
 import dev.kordex.core.extensions.publicSlashCommand
 import dev.kordex.core.i18n.withContext
+import dev.kordex.core.sentry.SentryContext
 import dev.kordex.core.types.TranslatableContext
 import io.github.leo40git.smars.LOG_CHANNEL_ID
 import io.github.leo40git.smars.SCRAPE_CHANNEL_ID
 import io.github.leo40git.smars.TEST_SERVER_ID
 import io.github.leo40git.smars.i18n.Translations
-import io.github.leo40git.smars.releaser.ChannelReleaseLog
 import io.github.leo40git.smars.releaser.ReleaseGenerator
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -40,7 +40,7 @@ class ScraperExtension : Extension() {
 			}
 
 			action {
-				doScrape(this@action, event.message)
+				doScrape(sentry, event.message)
 			}
 		}
 
@@ -60,7 +60,7 @@ class ScraperExtension : Extension() {
 						.translate()
 				}
 
-				doScrape(this@action, arguments.target, arguments.dryRun)
+				doScrape(sentry, arguments.target, arguments.dryRun)
 			}
 		}
 	}
@@ -82,31 +82,19 @@ class ScraperExtension : Extension() {
 	}
 
 	private suspend fun doScrape(
-		context: TranslatableContext,
+		sentry: SentryContext,
 		message: Message,
 		dryRun: Boolean = false
 	) {
-		val log = ChannelReleaseLog(
-			context,
-			logChannel
+		val release = ReleaseGenerator.generate(
+			sentry.copy(),
+			client,
+			message
 		)
 
-		try {
-			val release = ReleaseGenerator.generate(
-				client,
-				message,
-				log
-			)
+		if (release == null)
+			return
 
-			if (release == null)
-				return
-
-			// TODO
-		} catch (e: Exception) {
-			log.logErrorUncaughtException(
-				message,
-				e
-			)
-		}
+		// TODO
 	}
 }

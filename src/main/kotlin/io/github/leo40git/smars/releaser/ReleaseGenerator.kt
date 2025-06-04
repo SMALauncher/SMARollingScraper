@@ -2,49 +2,70 @@ package io.github.leo40git.smars.releaser
 
 import dev.kord.core.entity.Attachment
 import dev.kord.core.entity.Message
+import dev.kordex.core.sentry.SentryContext
+import dev.kordex.core.utils.getJumpUrl
+import io.github.leo40git.smars.captureNewEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import io.sentry.SentryLevel
 
 object ReleaseGenerator {
 	suspend fun generate(
+		sentry: SentryContext,
 		client: HttpClient,
-		message: Message,
-		log: ReleaseLog
+		message: Message
 	): ReleaseInfo? {
-		val archives = findArchives(message)
+		sentry.context("Message URL", message.getJumpUrl())
 
-		if (archives.isEmpty()) {
-			log.logErrorNoArchives(message)
-			return null
-		} else
-			log.logInfoArchiveList(message, archives)
-
-		val version = extractVersionFromArchives(archives)
-
-		val changelog: String
 		try {
-			changelog = fetchChangelog(
-				client,
-				message
+			val artifacts = findArtifacts(message)
+
+			// TODO figure out how to log messages to Sentry
+			//  WITHOUT it counting them as errors
+			/*
+			if (artifacts.isEmpty()) {
+				sentry.captureMessage("No artifacts detected")
+				return null
+			} else {
+				sentry.captureMessage(buildArtifactList(artifacts))
+			}
+			 */
+
+			val version = extractVersionFromArtifacts(artifacts)
+
+			val changelog: String
+			try {
+				changelog = fetchChangelog(
+					client,
+					message
+				)
+			} catch (e: Exception) {
+				sentry.captureNewEvent("Exception occurred while fetching changelog") {
+					level = SentryLevel.ERROR
+					throwable = e
+				}
+
+				return null
+			}
+
+			// TODO
+
+			return ReleaseInfo(
+				version,
+				changelog
 			)
 		} catch (e: Exception) {
-			log.logErrorFetchChangelogException(
-				message,
-				e
-			)
+			sentry.captureNewEvent("Unhandled exception occurred while generating release") {
+				level = SentryLevel.ERROR
+				throwable = e
+			}
+
 			return null
 		}
-
-		// TODO
-
-		return ReleaseInfo(
-			version,
-			changelog
-		)
 	}
 
-	private fun findArchives(message: Message): Map<TargetPlatform, List<Attachment>> {
+	private fun findArtifacts(message: Message): Map<TargetPlatform, List<Attachment>> {
 		val result = mutableMapOf<TargetPlatform, MutableList<Attachment>>()
 
 		for (attach in message.attachments) {
@@ -84,10 +105,10 @@ object ReleaseGenerator {
 		return result
 	}
 
-	private fun extractVersionFromArchives(
-		archives: Map<TargetPlatform, List<Attachment>>
+	private fun extractVersionFromArtifacts(
+		artifacts: Map<TargetPlatform, List<Attachment>>
 	): String {
-		var attach = archives[TargetPlatform.Windows]?.first()
+		var attach = artifacts[TargetPlatform.Windows]?.first()
 		if (attach != null) {
 			val lastUnderscoreIndex = attach.filename.lastIndexOf('_')
 			val lastDotIndex = attach.filename.lastIndexOf('.')
@@ -96,7 +117,7 @@ object ReleaseGenerator {
 				.replace('-', '.')
 		}
 
-		attach = archives[TargetPlatform.Linux]?.first()
+		attach = artifacts[TargetPlatform.Linux]?.first()
 		if (attach != null) {
 			val lastUnderscoreIndex = attach.filename.lastIndexOf('_')
 			val lastDotIndex = attach.filename.lastIndexOf('.')
@@ -105,6 +126,25 @@ object ReleaseGenerator {
 		}
 
 		throw UnsupportedOperationException("Should be unreachable...")
+	}
+
+	private fun buildArtifactList(
+		artifacts: Map<TargetPlatform, List<Attachment>>
+	): String {
+		val builder = StringBuilder("Detected artifacts for the following platforms:")
+			.appendLine()
+
+		for (entry in artifacts) {
+			builder.append(" - ", entry.key.name)
+
+			for (attach in entry.value) {
+				builder
+					.appendLine()
+					.append("     - ", attach.filename)
+			}
+		}
+
+		return builder.toString()
 	}
 
 	private suspend fun fetchChangelog(
