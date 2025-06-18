@@ -9,6 +9,7 @@ import dev.kordex.core.utils.envOrNull
 import io.github.leo40git.smars.extensions.ScraperExtension
 import io.github.leo40git.smars.extensions.SentryTestExtension
 import io.github.leo40git.smars.extensions.ShutdownExtension
+import io.sentry.SentryLevel
 import java.io.File
 
 private val TOKEN = env("TOKEN")
@@ -28,10 +29,33 @@ val SCRAPE_CHANNEL_ID = Snowflake(836080736939409418)
 val LOG_CHANNEL_ID = Snowflake(857240987214544938)
 
 suspend fun main() {
-	val bot = ExtensibleBot(TOKEN) {
+	 val bot = ExtensibleBot(TOKEN) {
 		extensions {
-			sentry {
-				enableIfDSN(SENTRY_DSN)
+			if (SENTRY_DSN != null) {
+				sentry {
+					enable = true
+					dsn = SENTRY_DSN
+
+					setup {
+						this.init { options ->
+							options.dsn = dsn
+							options.isDebug = debug
+
+							options.dist = distribution
+							options.environment = environment
+							options.release = release
+							options.serverName = serverName
+
+							options.isAttachThreads = false
+							options.sampleRate = sampleRate
+
+							options.setDiagnosticLevel(SentryLevel.WARNING)
+
+							@Suppress("UnstableApiUsage")
+							options.logs.isEnabled = true
+						}
+					}
+				}
 			}
 
 			add(::ScraperExtension)

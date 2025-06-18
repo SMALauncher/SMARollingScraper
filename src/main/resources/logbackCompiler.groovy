@@ -452,6 +452,8 @@ importsAcceptList = [
 	'java.util.List',
 	'java.util.List.contains',
 	'dev.kordex.core.utils._EnvironmentKt.envOrNull',
+
+	'io.github.leo40git.smars.logging.SentryLogbackAppender',
 ]
 
 staticImportsAcceptList = importsAcceptList

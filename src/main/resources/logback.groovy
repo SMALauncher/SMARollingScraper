@@ -1,5 +1,6 @@
 import ch.qos.logback.core.joran.spi.ConsoleTarget
 import ch.qos.logback.core.ConsoleAppender
+import io.github.leo40git.smars.logging.SentryLogbackAppender
 
 def defaultLevel = INFO
 def defaultTarget = ConsoleTarget.SystemErr
@@ -24,4 +25,6 @@ appender("CONSOLE", ConsoleAppender) {
 	target = defaultTarget
 }
 
-root(defaultLevel, ["CONSOLE"])
+appender("SENTRY", SentryLogbackAppender)
+
+root(defaultLevel, ["CONSOLE", "SENTRY"])
